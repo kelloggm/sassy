@@ -1,7 +1,7 @@
 \title{Synthesizing Static Analyses from Examples}
 \author{
         Martin Kellogg \\
-        University of Washginton
+        University of Washington
             \and
         Everett Maus\\
         Microsoft Corporation
@@ -50,7 +50,7 @@ This will relieve the burden of actually building the infrastructure
 required to deploy complex static analyses, so that specialized analyses
 with the precision required of industrial-strength tools can be built without
 needing an intimate knowledge of the theory of abstract interpretation,
-which will allow relative novices (like industrial programmers) to become
+which will allow non-specialists (like industrial programmers) to become
 static analysis builders.
 
 \section{Background}
@@ -81,6 +81,14 @@ with a subtyping relationship represented by the lines---any abstract domain
 with a line going to another abstract domain higher in the lattice is a strict
 subset of the higher abstract domain (so, for instance, top contains both
 all even integers and all odd integers, so both even and odd are its subtypes).
+/iffalse
+  (Comment that doesn't affect the doc yet)
+  My opinion is that we aren't really modelling subtyping in the traditional meaning
+  of the term in Computer Science with the latice--it's not an "is-a" relationship 
+  (i.e. claiming 'Bottom is-a Even' doesn't line up with an intuitive grasp of the model).
+  Subsets seem to more accurately model the behavior of the lattice--this would
+  mean changing 'both' to 'neither' and rephrasing the preceeding sentence.
+/fi
 The transfer function shows how the result of the plus operation is related
 to its operands. We represent this as a matrix, with the top row and leftmost
 column representing the abstract domains of the operands, and the interior
@@ -91,12 +99,11 @@ because the entry for odd and bottom in the matrix is bottom.
 \subsection{Synthesis}
 
 The field of program synthesis uses SMT solvers to
-automatically build programs based on some set of constraints provided
+automatically build programs based on a set of constraints provided
 by the programmer. Modern SMT solvers, such as z3~\cite{z3}, are able
-to solve equations involving millions of variables extremely quickly
-in practice, despite the problem they solve (boolean satisfiabilty)
-being known to be NP-complete~\cite{cook71complexity}. These modern solvers
-allow the synthesis of, for example, memory models for modern architectures
+to solve equations involving millions of variables extremely quickly, despite 
+the problem they solve (boolean satisfiabilty) being known to be NP-complete~\cite{cook71complexity}. 
+These modern solvers allow the synthesis of, for example, memory models for modern architectures
 in a few seconds from the architecture's litmus tests~\cite{bornholt17}.
 Synthesis works by reducing the constraints provided by the user
 (litmus tests, a formal specification, etc.) to a boolean satisfiability
@@ -118,8 +125,8 @@ such as a program with some expressions missing.
 \end{figure} 
 
 Our proposed approach involves three steps.
-First, translate the examples of the static analysis in
-use into constraints on the transfer function and create
+First, translate examples of the static analysis on sample programs
+into constraints on the transfer function and create
 a sketch of the transfer functions for the target language.
 Second, pass those constraints and the sketch to the solver;
 the result of that solver call is a filled-in transfer
@@ -138,8 +145,7 @@ analysis on top of a framework like the Checker Framework~\cite{checker-framewor
 \section{Implementation and Evaluation}
 
 We propose to target the IMP programming language~\footnote{https://www.seas.upenn.edu/~cis500/current/sf/Imp.html}
-during this course
-project, with the idea that we would be able to re-use the internals
+during this course project, with the idea that we would be able to re-use the internals
 (i.e. the code that calls the solver) if the project is successful in
 a version of the tool that targetted a more practical language like Java.
 We will use z3~\cite{z3} as our solver, and transform the IMP programs directly
@@ -167,7 +173,7 @@ complex transfer functions---and probably would require
 a meta-sketching approach~\cite{metasketching} that tried several levels of
 sketches for the transfer functions (moving from
 refining only the result of the expression to
-refining multiple variables to flow-sensitive refinement, etc.).
+refining multiple variables to a flow-sensitive refinement, etc.).
 This would also require implementing the last stage of the tool, which
 translates the synthesized transfer function into a Checker Framework
 checker.
