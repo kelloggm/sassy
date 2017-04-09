@@ -33,14 +33,13 @@ A well-designed static analysis (or, equivalently, a type system or abstract int
 can allow developers to find bugs in their code quickly and with little manual effort,
 or even avoid entire classes of errors by verifying that their code can never
 do some undesirable thing. However, these benefits come at a
-cost---developing such a static analyses 
-requires an expert to spend a long time
-both designing and implementing the static analysis (for instance, one
-interesting static analysis that checks the types of the arguments to a format string was sufficient
-to publish a paper at a recent top-tier software engineering venue~\cite{format-string-checker}.
+cost---developing such a static analyses requires an expert to spend a long time
+both designing and implementing the static analysis (for instance, a static analysis that checks 
+the types of the arguments to a format string was novel enough to be published as a paper at a recent 
+top-tier software engineering venue~\cite{format-string-checker}).
 Worse, the cost to build such static analyses means that many that are
 designed by the research community are never engineered to the level of practicality and precision
-that would be required to run on real-world code, so programmers
+that would be required to run on real-world code, so most programmers
 never gain their benefits.
 
 We propose to deploy state-of-the-art techniques from the domain of program
@@ -49,9 +48,9 @@ examples of the code that the analysis should and should not permit.
 This will relieve the burden of actually building the infrastructure
 required to deploy complex static analyses, so that specialized analyses
 with the precision required of industrial-strength tools can be built without
-needing an intimate knowledge of the theory of abstract interpretation,
-which will allow non-specialists (like industrial programmers) to become
-static analysis builders.
+requiring an intimate knowledge of the theory of abstract interpretation,
+which will allow non-specialists (like industrial programmers) to easily
+build new static analyses.
 
 \section{Background}
 
