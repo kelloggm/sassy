@@ -76,18 +76,10 @@ whether integers are even or odd. There are also two other possiblities:
 the integer could be either even or odd (the ``top'' type) or it could
 be \textit{both} even and odd---such as in dead code (represented by the
 ``bottom'' type). The lattice shows how these abstract domains are related,
-with a subtyping relationship represented by the lines---any abstract domain
+with a subset relationship represented by the lines---any abstract domain
 with a line going to another abstract domain higher in the lattice is a strict
 subset of the higher abstract domain (so, for instance, top contains both
-all even integers and all odd integers, so both even and odd are its subtypes).
-/iffalse
-  (*** Comment that doesn't affect the doc yet ***)
-  My opinion is that we aren't really modelling subtyping in the traditional meaning
-  of the term in Computer Science with the latice--it's not an "is-a" relationship 
-  (i.e. claiming 'Bottom is-a Even' doesn't line up with an intuitive grasp of the model).
-  Subsets seem to more accurately model the behavior of the lattice--this would
-  mean changing 'both' to 'neither' and rephrasing the immediately preceeding sentence.
-/fi
+all even integers and all odd integers, so both even and odd are below it in the lattice).
 The transfer function shows how the result of the plus operation is related
 to its operands. We represent this as a matrix, with the top row and leftmost
 column representing the abstract domains of the operands, and the interior
