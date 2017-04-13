@@ -1,0 +1,19 @@
+Hello World!
+# Imp:
+
+0
+
+# Python:
+
+stdout:
+Hello World!
+0
+
+stderr:
+
+
+status:
+WEXITED 0
+
+
+PASS
