@@ -88,11 +88,11 @@ let parse_args () =
 let parse' lexbuf =
   try ImpParser.file ImpLexer.token lexbuf with
   | ImpLexer.SyntaxError msg ->
-      Printf.fprintf stderr "%a: %s\n"
+      Printf.fprintf stderr "%a: %s while lexing\n"
         ImpLexer.print_lexpos lexbuf msg;
       exit 1
   | ImpParser.Error ->
-      Printf.fprintf stderr "%a: syntax error\n"
+      Printf.fprintf stderr "%a: syntax error while parsing\n"
         ImpLexer.print_lexpos lexbuf;
       exit 1
 

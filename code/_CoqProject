@@ -1,10 +1,7 @@
 -Q Imp/coq ""
 
 Imp/coq/ImpSyntax.v
-Imp/coq/ImpInterpProof.v
 Imp/coq/ImpInterp.v
 Imp/coq/ImpEval.v
-Imp/coq/StructTactics.v
 Imp/coq/Extract.v
 Imp/coq/ImpCommon.v
-Imp/coq/ImpSemanticsFacts.v

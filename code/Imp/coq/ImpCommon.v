@@ -30,12 +30,20 @@ Definition imp_eq := pred_of_dec val_eq_dec.
 Definition imp_lt := pred_of_dec Z_lt_dec.
 Definition imp_le := pred_of_dec Z_le_dec.
 
+Definition clean_anno_var
+  (v : var) : string :=
+  match v with
+  | Var s => s
+  | AnnoVar anno s => s
+  end.
+
+
 (** Stores *)
 
 Definition store_0 : store :=
   nil.
 
-Fixpoint update (s : store)
+Fixpoint updatestr (s : store)
   (x : string) (v : val) : store :=
   match s with
   | nil => (x, v) :: nil
@@ -43,7 +51,7 @@ Fixpoint update (s : store)
       if string_dec x x' then
         (x, v) :: rest
       else
-        (x', v') :: update rest x v
+        (x', v') :: updatestr rest x v
   end.
 
 Fixpoint updates (s : store)
@@ -52,9 +60,14 @@ Fixpoint updates (s : store)
   | nil, nil =>
       Some s
   | x :: xs', v :: vs' =>
-      updates (update s x v) xs' vs'
+      updates (updatestr s x v) xs' vs'
   | _, _ => None
   end.
+
+Definition update (s : store)
+  (x : var) (v : val) : store :=
+  updatestr s (clean_anno_var x) v.
+
 
 Fixpoint lkup (s : store)
   (x : string) : option val :=
@@ -66,6 +79,10 @@ Fixpoint lkup (s : store)
       else
         lkup rest x
   end.
+
+Definition lkupv (s : store)
+  (x : var) : option val :=
+  lkup s (clean_anno_var x).
 
 (** Heaps *)
 
@@ -107,18 +124,22 @@ Fixpoint write (h : heap)
 Definition env : Type :=
   list func.
 
-Fixpoint locate (e : env)
+Fixpoint locatestr (e : env)
   (x : string) : option func :=
   match e with
   | nil => None
   | f :: rest =>
       match f with Func x' _ _ _ =>
-        if string_dec x x' then
+        if string_dec x (clean_anno_var x') then
           Some f
         else
-          locate rest x
+          locatestr rest x
       end
   end.
+
+Definition locate (e : env)
+  (x : var) : option func :=
+  locatestr e (clean_anno_var x).
 
 (** External Calls *)
 
@@ -156,7 +177,7 @@ Inductive extcall_spec :
         "read_str" nil h
         (Vstr cs) h.
 
-Definition extcall_args_ok
+Definition extcall_args_ok_str
   (f : string) (vs : list val) (h : heap) : bool :=
   match f, vs with
   | "print_val", v :: nil => true
@@ -168,13 +189,21 @@ Definition extcall_args_ok
   | _, _ => false
   end.
 
-Axiom extcall :
+Definition extcall_args_ok
+  (f : var) (vs : list val) (h : heap) : bool :=
+  extcall_args_ok_str (clean_anno_var f) vs h.
+
+Axiom extcall_str :
   string -> list val -> heap ->
   val * heap.
 
+Definition extcall
+  (v : var) (vls : list val) (h: heap) : val * heap :=
+  extcall_str (clean_anno_var v) vls h.
+
 Axiom extcall_ok :
   forall f vs h v' h',
-    extcall f vs h = (v', h') ->
+    extcall_str f vs h = (v', h') ->
     extcall_spec f vs h v' h'.
 
 (** Common *)
@@ -209,6 +238,7 @@ Proof.
   - apply string_dec.
   - decide equality.
   - decide equality.
+  - apply string_dec.
 Qed.
 
 Fixpoint size_s (p : stmt) : nat :=

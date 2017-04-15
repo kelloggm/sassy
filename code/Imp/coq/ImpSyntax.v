@@ -23,13 +23,18 @@ Inductive op2 : Type :=
 | Oconj
 | Odisj.
 
+Inductive var : Type :=
+| Var : string -> var
+| AnnoVar : string -> string -> var.
+
 Inductive expr : Type :=
 | Eval : val -> expr
 | Evar : string -> expr
 | Eop1 : op1 -> expr -> expr
 | Eop2 : op2 -> expr -> expr -> expr
 | Elen : expr -> expr
-| Eidx : expr -> expr -> expr.
+| Eidx : expr -> expr -> expr
+| Eanno : string -> expr -> expr.
 
 Definition store : Type :=
   list (string * val).
@@ -39,16 +44,16 @@ Definition heap : Type :=
 
 Inductive stmt : Type :=
 | Snop : stmt
-| Sset : string -> expr -> stmt
-| Salloc : string -> expr -> expr -> stmt
-| Swrite : string -> expr -> expr -> stmt
-| Scall : string -> string -> list expr -> stmt
+| Sset : var -> expr -> stmt
+| Salloc : var -> expr -> expr -> stmt
+| Swrite : var -> expr -> expr -> stmt
+| Scall : var -> var -> list expr -> stmt
 | Sifelse : expr -> stmt -> stmt -> stmt
 | Swhile : expr -> stmt -> stmt
 | Sseq : stmt -> stmt -> stmt.
 
 Inductive func : Type :=
-| Func : string -> list string -> stmt -> expr -> func.
+| Func : var -> list string -> stmt -> expr -> func.
 
 Inductive prog : Type :=
 | Prog : list func -> stmt -> expr -> prog.

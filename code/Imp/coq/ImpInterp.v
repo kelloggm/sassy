@@ -25,7 +25,6 @@ Definition interp_op1
       None
   end.
 
-
 Definition interp_op2
   (op : op2) (v1 v2 : val) : option val :=
   match op, v1, v2 with
@@ -66,6 +65,7 @@ Fixpoint interp_e (s : store) (h : heap)
   match e with
   | Eval v => Some v
   | Evar x => lkup s x
+  | Eanno anno e => interp_e s h e
   | Eop1 op e1 =>
       match interp_e s h e1 with
       | Some v1 => interp_op1 op v1
@@ -141,7 +141,7 @@ Fixpoint interp_s (fuel : nat) (env : env) (s : store) (h : heap)
         | _, _ => None
         end
     | Swrite x e1 e2 =>
-        match lkup s x
+        match lkupv s x
             , interp_e s h e1
             , interp_e s h e2 with
         | Some (Vaddr a), Some (Vint i), Some v =>

@@ -39,3 +39,8 @@ code/Imp/extract/
 *.glob
 *.v.d
 Makefile.coq
+
+# Imp Test Data:
+code/Imp/test/**/TESTIMP.*
+code/Imp/test/**/*.imp.input
+code/Imp/test/**/*.imp.result

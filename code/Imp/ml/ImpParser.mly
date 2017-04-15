@@ -43,11 +43,13 @@ open ImpSyntax
 %token EOF
 
 %token <string> ID
+%token <string> ANNO
 
 %start file
 %type <ImpSyntax.prog> file
 
 /* TODO make sure these match python */
+%right ANNO
 %left DISJ
 %left CONJ
 %right EQ
@@ -55,7 +57,6 @@ open ImpSyntax
 %left ADD SUB
 %left MUL DIV MOD
 %left NOT
-
 %%
 
 file :
@@ -70,10 +71,10 @@ funcs :
       { $1 :: $2 }
 
 func :
-  | DEF ID params LCURL RET expr SEMI RCURL
-      { Func (explode $2, $3, Snop, $6) }
-  | DEF ID params LCURL stmt RET expr SEMI RCURL
-      { Func (explode $2, $3, $5, $7) }
+  | DEF aID params LCURL RET expr SEMI RCURL
+      { Func ($2, $3, Snop, $6) }
+  | DEF aID params LCURL stmt RET expr SEMI RCURL
+      { Func ($2, $3, $5, $7) }
 
 params :
   | LPAREN RPAREN
@@ -105,23 +106,33 @@ stmt :
   | lstmt stmt
       { Sseq ($1, $2) }
 
+
+aID :
+  | ID
+    {Var (explode $1)}
+  | ANNO ID
+    {AnnoVar (explode $1, explode $2)}
+
 lstmt :
   | NOP SEMI
       { Snop }
-  | ID ASSIGN expr SEMI
-      { Sset (explode $1, $3) }
-  | ID ASSIGN ALLOC LPAREN expr COMMA expr RPAREN SEMI
-      { Salloc (explode $1, $5, $7) }
-  | ID LSQUARE expr RSQUARE ASSIGN expr SEMI
-      { Swrite (explode $1, $3, $6) }
-  | ID ASSIGN ID args SEMI
-      { Scall (explode $1, explode $3, $4) }
+(* Assignment *)
+  | aID ASSIGN expr SEMI
+      { Sset ($1, $3) }
+  | aID ASSIGN ALLOC LPAREN expr COMMA expr RPAREN SEMI
+      { Salloc ($1, $5, $7) }
+  | aID LSQUARE expr RSQUARE ASSIGN expr SEMI
+      { Swrite ($1, $3, $6) }
+(* Function calls *)
+  | aID ASSIGN aID args SEMI
+      { Scall ($1, $3, $4) }
   | IF expr LCURL stmt RCURL
       { Sifelse ($2, $4, Snop) }
   | IF expr LCURL stmt RCURL ELSE LCURL stmt RCURL
       { Sifelse ($2, $4, $8) }
   | WHILE expr LCURL stmt RCURL
       { Swhile ($2, $4) }
+
 
 bexpr :
   | TRUE
@@ -144,6 +155,9 @@ bexpr :
 expr :
   | bexpr
       { $1 }
+  (* Expressions can have an 'annotated type'*)
+  | ANNO expr
+      { Eanno (explode $1, $2) }
   | NOT expr
       { Eop1 (Onot, $2) }
   | SUB expr

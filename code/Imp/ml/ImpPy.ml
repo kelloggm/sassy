@@ -5,45 +5,73 @@ open ImpCommon
 let indent ls =
   List.map (fun l -> "  " ^ l) ls
 
+let var_py = function
+  | Var v -> (implode v)
+  | AnnoVar (a, v) -> (implode v)
+
+let rec expr_py = function
+  | Eval v ->
+      ImpPretty.val_pretty v
+  | Evar x ->
+      implode x
+  | Eop1 (op, e1) ->
+      mkstr "(%s %s)"
+        (ImpPretty.op1_pretty op)
+        (expr_py e1)
+  | Eop2 (op, e1, e2) ->
+      mkstr "(%s %s %s)"
+        (expr_py e1)
+        (ImpPretty.op2_pretty op)
+        (expr_py e2)
+  | Elen e1 ->
+      mkstr "len(%s)" (expr_py e1)
+  | Eidx (e1, e2) ->
+      mkstr "(%s[%s])"
+        (expr_py e1)
+        (expr_py e2)
+  | Eanno (str, e1) ->
+      mkstr "%s" (expr_py e1)
+
+
 let rec stmt_py' = function
   | Snop ->
       []
   | Sset (x, e) ->
       mkstr "%s = %s"
-        (implode x)
-        (ImpPretty.expr_pretty e)
+        (var_py x)
+        (expr_py e)
       :: []
   | Salloc (x, e1, e2) ->
       mkstr "%s = %s * [%s]"
-        (implode x)
-        (ImpPretty.expr_pretty e1)
-        (ImpPretty.expr_pretty e2)
+        (var_py x)
+        (expr_py e1)
+        (expr_py e2)
       :: []
   | Swrite (x, e1, e2) ->
       mkstr "%s[%s] = %s"
-        (implode x)
-        (ImpPretty.expr_pretty e1)
-        (ImpPretty.expr_pretty e2)
+        (var_py x)
+        (expr_py e1)
+        (expr_py e2)
       :: []
   | Scall (x, f, es) ->
       mkstr "%s = %s(%s)"
-        (implode x)
-        (implode f)
-        (es |> List.map ImpPretty.expr_pretty
+        (var_py x)
+        (var_py f)
+        (es |> List.map expr_py
             |> String.concat ", ")
       :: []
   | Sseq (p1, p2) ->
       stmt_py' p1 @ stmt_py' p2
   | Sifelse (e, p1, Snop) ->
-      mkstr "if %s:" (ImpPretty.expr_pretty e)
+      mkstr "if %s:" (expr_py e)
         :: indent (stmt_py' p1)
   | Sifelse (e, p1, p2) ->
-      mkstr "if %s:" (ImpPretty.expr_pretty e)
+      mkstr "if %s:" (expr_py e)
         :: indent (stmt_py' p1)
       @ "else:"
         :: indent (stmt_py' p2)
   | Swhile (e, p1) ->
-      mkstr "while %s:" (ImpPretty.expr_pretty e)
+      mkstr "while %s:" (expr_py e)
         :: indent (stmt_py' p1)
 
 let stmt_py s =
@@ -52,11 +80,11 @@ let stmt_py s =
 let func_py' = function
   | Func (name, params, body, ret) ->
       mkstr "def %s(%s):"
-        (implode name)
+        (var_py name)
         (params |> List.map implode
                 |> String.concat ", ")
       :: indent (stmt_py' body)
-      @  indent ((mkstr "return %s" (ImpPretty.expr_pretty ret)) :: [])
+      @  indent ((mkstr "return %s" (expr_py ret)) :: [])
 
 let func_py f =
   String.concat "\n" (func_py' f)
@@ -65,7 +93,7 @@ let prog_py' = function
   | Prog (funcs, body, ret) ->
       List.map func_py funcs
       @ stmt_py' body
-      @ mkstr "print %s" (ImpPretty.expr_pretty ret)
+      @ mkstr "print %s" (expr_py ret)
       :: []
 
 let implib_py = String.concat "\n"

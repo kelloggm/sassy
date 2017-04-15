@@ -26,10 +26,13 @@ let rand_list gen arg n =
     |> range
     |> List.map (fun _ -> gen arg)
 
-let rand_var () =
+let rand_ident () =
   [ 'x'
   ; char_of_digit (Random.int 10)
   ]
+
+let rand_var () =
+  Var (rand_ident ())
 
 let rand_val () =
   match Random.int 3 with
@@ -62,12 +65,12 @@ let rec rand_expr size =
   if size <= 1 then
     match Random.int 2 with
     | 0 -> Eval (rand_val ())
-    | 1 -> Evar (rand_var ())
+    | 1 -> Evar (rand_ident ())
     | _ -> failwith "rand_expr in size <= 1"
   else
     match Random.int 6 with
     | 0 -> Eval (rand_val ())
-    | 1 -> Evar (rand_var ())
+    | 1 -> Evar (rand_ident ())
     | 2 -> Eop1 (rand_op1 (), rand_expr (size - 1))
     | 3 -> Eop2 (rand_op2 (), rand_expr (size / 2), rand_expr (size / 2))
     | 4 -> Elen (rand_expr (size - 1))
@@ -95,7 +98,7 @@ let rec rand_stmt size =
 
 let rand_func size =
   Func ( rand_var ()
-       , rand_list rand_var () size
+       , rand_list rand_ident () size
        , rand_stmt size
        , rand_expr size
        )
