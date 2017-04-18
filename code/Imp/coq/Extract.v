@@ -9,7 +9,7 @@ Extraction Blacklist Nat.
 Extraction Blacklist List.
 Extraction Blacklist String.
 
-Extract Constant ImpCommon.extcall =>
+Extract Constant ImpCommon.extcall_str =>
   "ImpLib.extcall".
 
 Cd "Imp/extract".

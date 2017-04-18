@@ -7,7 +7,11 @@ let val_coq = function
   | Vstr s  -> mkstr "(Vstr \"%s\")" (implode s)
   | Vaddr a -> mkstr "(Vaddr %s)" (Big.to_string a)
 
-let var_coq x =
+let var_coq = function
+  | Var v -> mkstr "Var \"%s\"" (implode v)
+  | AnnoVar (a, v) -> mkstr "AnnoVar \"%s\" \"%s\"" (implode a) (implode v)
+
+let identifier_coq x =
   mkstr "\"%s\"" (implode x)
 
 let op1_coq = function
@@ -32,7 +36,7 @@ let rec expr_coq = function
         (val_coq v)
   | Evar x ->
       mkstr "(Evar %s)"
-        (var_coq x)
+        (identifier_coq x)
   | Eop1 (op, e1) ->
       mkstr "(Eop1 %s %s)"
         (op1_coq op)
@@ -48,6 +52,10 @@ let rec expr_coq = function
       mkstr "(Eidx %s %s)"
         (expr_coq e1)
         (expr_coq e2)
+  | Eanno (x, e1) ->
+     mkstr "(Eanno %s %s)"
+        (identifier_coq x)
+        (expr_coq e1)
 
 let indent ls =
   List.map (fun l -> "  " ^ l) ls
@@ -117,7 +125,7 @@ let func_coq' = function
   | Func (name, params, body, ret) ->
       mkstr "(Func %s %s"
         (var_coq name)
-        (list_coq (List.map var_coq params))
+        (list_coq (List.map identifier_coq params))
       :: indent (stmt_coq' body)
       @  add_to_last ")" (indent (expr_coq ret :: []))
 

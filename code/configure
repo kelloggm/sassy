@@ -26,17 +26,16 @@ function ckdeps {
   fi
 }
 
-function coqproj {
-  for d in $(find Imp/coq -type d); do
-    echo "-Q $d \"\""
-  done
-  echo
-  find Imp/coq -iname '*.v'
-}
+#function coqproj {
+#  for d in $(find Imp/coq -type d); do
+#    echo "-Q $d \"\""
+#  done
+#  echo
+#  find Imp/coq -iname '*.v'
+#}
 
 function main {
   ckdeps
-  coqproj > _CoqProject
 }
 
 main

@@ -16,7 +16,7 @@ Require Import ImpEval.
 Lemma locate_inv :
   forall env x name params body ret,
     locate env x = Some (Func name params body ret) ->
-    x = name.
+    (clean_anno_var x) = (clean_anno_var name).
 Proof.
   induction env; simpl; intros.
   - congruence.
@@ -91,3 +91,4 @@ Proof.
   - eapply ImpSemanticsFacts.eval_e_det in H0; eauto.
     congruence.
 Qed.
+

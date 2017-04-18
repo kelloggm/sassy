@@ -75,6 +75,7 @@ Proof.
   - repeat break_match; try discriminate.
     + find_inversion. eapply eval_idx_s; eauto.
     + eapply eval_idx_a; eauto.
+  - eapply eval_anno. auto.
 Qed.
 
 Lemma eval_e_interp_e :

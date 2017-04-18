@@ -111,7 +111,12 @@ Inductive eval_e (s : store) (h : heap) :
       eval_e s h e2 (Vint i) ->
       0 <= i ->
       String.get (Z.to_nat i) cs = Some c ->
-      eval_e s h (Eidx e1 e2) (Vstr (String c EmptyString)).
+      eval_e s h (Eidx e1 e2) (Vstr (String c EmptyString))
+| eval_anno :
+    forall e1 str v,
+    eval_e s h e1 v ->
+    eval_e s h (Eanno str e1) v.
+
 
 Inductive evals_e (s : store) (h : heap) :
   list expr -> list val -> Prop :=
@@ -146,7 +151,7 @@ Inductive eval_s (env : env) :
         (update s x (Vaddr (zlen h))) (alloc h i v)
 | eval_write :
     forall s h x e1 e2 a l i v h',
-      lkup s x = Some (Vaddr a) ->
+      lkupv s x = Some (Vaddr a) ->
       read h a = Some (Vint l) ->
       eval_e s h e1 (Vint i) ->
       eval_e s h e2 v ->
@@ -168,10 +173,11 @@ Inductive eval_s (env : env) :
         s h (Scall x f es)
         (update s x v) h'
 | eval_call_external :
-    forall x f es s h vs v' h',
+    forall x f fname es s h vs v' h',
       locate env f = None ->
       evals_e s h es vs ->
-      extcall_spec f vs h v' h' ->
+      clean_anno_var f = fname ->
+      extcall_spec fname vs h v' h' ->
       eval_s env
         s h (Scall x f es)
         (update s x v') h'

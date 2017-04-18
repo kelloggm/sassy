@@ -9,6 +9,10 @@ let val_pretty = function
   | Vstr s -> mkstr "\"%s\"" (String.escaped (implode s))
   | Vaddr a -> mkstr "(Vaddr %s)" (Big.to_string a)
 
+let var_pretty = function
+  | Var v -> (implode v)
+  | AnnoVar (a, v) -> mkstr "[(%s) %s]" (implode a) (implode v)
+
 let op1_pretty = function
   | Oneg -> "-"
   | Onot -> "not"
@@ -45,6 +49,10 @@ let rec expr_pretty = function
       mkstr "(%s[%s])"
         (expr_pretty e1)
         (expr_pretty e2)
+  | Eanno (str, e1) ->
+      mkstr "(%s [%s])"
+        (implode str)
+        (expr_pretty e1)
 
 let indent ls =
   List.map (fun l -> "  " ^ l) ls
@@ -54,25 +62,25 @@ let rec stmt_pretty' = function
       "nop;" :: []
   | Sset (x, e) ->
       mkstr "%s = %s;"
-        (implode x)
+        (var_pretty x)
         (expr_pretty e)
       :: []
   | Salloc (x, e1, e2) ->
       mkstr "%s = alloc(%s, %s);"
-        (implode x)
+        (var_pretty x)
         (expr_pretty e1)
         (expr_pretty e2)
       :: []
   | Swrite (x, e1, e2) ->
       mkstr "%s[%s] = %s;"
-        (implode x)
+        (var_pretty x)
         (expr_pretty e1)
         (expr_pretty e2)
       :: []
   | Scall (x, f, es) ->
       mkstr "%s = %s(%s);"
-        (implode x)
-        (implode f)
+        (var_pretty x)
+        (var_pretty f)
         (es |> List.map expr_pretty
             |> String.concat ", ")
       :: []
@@ -95,7 +103,7 @@ let stmt_pretty s =
 let func_pretty' = function
   | Func (name, params, body, ret) ->
       mkstr "def %s(%s) {"
-        (implode name)
+        (var_pretty name)
         (params |> List.map implode
                 |> String.concat ", ")
       :: indent (stmt_pretty' body)

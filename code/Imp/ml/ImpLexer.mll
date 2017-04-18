@@ -36,6 +36,9 @@ let print_lexpos outx lexbuf =
 let id =
   ['a'-'z''A'-'Z''_']['a'-'z''A'-'Z''0'-'9''_']*
 
+let anno =
+  "@"['a'-'z''A'-'Z''_']['a'-'z''A'-'Z''0'-'9''_']*
+
 let intlit =
   "0" | ['1'-'9']['0'-'9']*
 
@@ -92,6 +95,7 @@ rule token = parse
 
   (* variables *)
   | id as x { ID x }
+  | anno as x { ANNO x }
 
   (* ignore *)
   | comment { token lexbuf }

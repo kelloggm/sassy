@@ -1,5 +1,7 @@
-OCB_FLAGS = -libs nums -libs unix -use-ocamlfind -pkgs Z3 -Is Imp/extract,Imp/ml
+OCB_FLAGS = -libs unix -use-ocamlfind -pkgs Z3 -Is Imp/extract,Imp/ml
 OCB_FLAGS := -use-menhir -yaccflags --explain $(OCB_FLAGS)
+
+default: Z3Sample.native Imp.native
 
 Z3Sample.native:
 	ocamlbuild $(OCB_FLAGS) Z3Sample/Z3Sample.native
