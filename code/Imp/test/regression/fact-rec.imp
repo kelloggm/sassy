@@ -1,0 +1,13 @@
+def @Big fact(n) {
+  res = @Small 1;
+  if(0 < n) {
+    @Big x = @Big fact(n - 1);
+    @Big res = @Big n * x;
+  }
+  return res;
+}
+
+n = read_int();
+@Big res = fact(n);
+
+return res;

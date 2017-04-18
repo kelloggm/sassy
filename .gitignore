@@ -28,3 +28,19 @@ setup.log
 
 # emacs backups
 *~
+
+
+# Code extracts/etc.
+*/_build/
+code/Imp/extract/
+*.native
+*.vo
+*.vo.aux
+*.glob
+*.v.d
+Makefile.coq
+
+# Imp Test Data:
+code/Imp/test/**/TESTIMP.*
+code/Imp/test/**/*.imp.input
+code/Imp/test/**/*.imp.result

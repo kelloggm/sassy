@@ -1,0 +1,3 @@
+x = @TestAnno read_int();
+y = read_int();
+return @TestAnno x + y;
