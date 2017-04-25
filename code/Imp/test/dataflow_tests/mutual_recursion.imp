@@ -1,0 +1,44 @@
+def @Even get_closest_even(x) {
+  ret = x;
+  if (x % 2 == 1){
+    @Even ret = x - 1;
+  } else {
+      nop;
+  }
+  return ret;
+}
+
+def @Lower funA(x){
+    ret = 0;
+    if (x == 0)
+    {
+        ret = 0;
+    } 
+    else 
+    {
+        _ = print_val(x);
+        y = x -1;
+        ret = funB(x);
+    }
+    return ret;
+}
+
+def @Lower funB(x){
+    ret = 0;
+    if (x == 0)
+    {
+        ret = 0;
+    } 
+    else 
+    {
+        _ = print_val(x);
+        y = x -1;
+        ret = funB(x);
+    }
+    return ret;
+}
+
+
+@Both inp = read_int();
+y = FunA(inp);
+return y;

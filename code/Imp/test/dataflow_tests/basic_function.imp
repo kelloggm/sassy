@@ -1,0 +1,13 @@
+def @Even get_closest_even(x) {
+  ret = x;
+  if (x % 2 == 1){
+    @Even ret = x - 1;
+  } else {
+      nop;
+  }
+  return ret;
+}
+
+@Both inp = read_int();
+y = get_closest_even(inp);
+return y;

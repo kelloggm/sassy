@@ -1,0 +1,28 @@
+def print_array(a) {
+    x = len(a);
+    i = 0;
+    while (i < x){
+        _ = print_val(a);
+    }
+    return x;
+}
+
+
+n = read_int();
+
+if (n < 0) {
+   n = -n;
+}
+
+@NonNull a = alloc(n, 0);
+@Zero i = 0;
+while (i < n) {
+  a[i] = @Any n - i;
+  i = @Any i + 1;
+}
+
+_ = print_array(a);
+
+return a;
+
+

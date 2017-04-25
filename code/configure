@@ -16,8 +16,8 @@ function ckdeps {
     exit 1
   fi
 
-  if ! coqc --version | grep -q 'version 8.6'; then
-    echo "Error: bad coqc version, need Coq 8.6"
+  if ! coqc --version | grep -q 'version 8.5'; then
+    echo "Error: bad coqc version, need Coq 8.5"
     exit 1
   fi
   
