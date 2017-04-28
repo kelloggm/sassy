@@ -13,6 +13,7 @@
 \usepackage{graphicx}
 \usepackage{myref}
 \usepackage{booktabs}
+\usepackage{url}
 
 \begin{document}
 
@@ -233,11 +234,13 @@ abstract interpretations, developed by NASA for verifying flight
 controllers~\cite{ikos}. Modern compilers use a framework for building
 the dataflow analyses they use to perform optimizations and code generation
 ~\cite{lattner04:_llvm}; these dataflow analyses, too, can be viewed as
-abstract interpretations. These frameworks and others like them make
-it easier to develop analyses, but building a precise, sound analysis
-still requires an expert. Our tool aims to remove that requirement by
-automating the development of analyses; we could target our tool to generate
-code that runs in any of these frameworks.
+abstract interpretations. The current state of the art in industry is to
+utilize domain specific query languages to describe static analyses, such as 
+Semmle's QL, a datalog variant~\cite{semmle-ql-primer}.
+These frameworks and others like them make it easier and faster to develop analyses, but 
+building a precise, sound analysis still requires an expert.  Our tool 
+aims to remove that requirement by automating the development of analyses; 
+we could target our tool to generate code that runs in any of these frameworks.
 
 Previous work on abstract interpretation has considered its relationship
 with SAT/SMT solvers, which our approach relies on. Brain et al. characterized
