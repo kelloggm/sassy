@@ -22,7 +22,10 @@
 \begin{abstract}
 
 Constructing static analyses requires a great deal of
-manual, expert programmer effort. We propose a technique
+manual, expert programmer effort. Because of the large amount of
+effort required to build a precise static analysis, custom analyses
+are rarely deployed by developers, despite their potential
+for finding bugs and verifying correctness. We propose a technique
 for automatically synthesizing the implementation of analyses
 from examples of the desired analysis in action,
 reducing the effort required to design, build, and deploy static analysis
@@ -32,28 +35,39 @@ tools.
 
 \section{Motivation}
 
-A well-designed static analysis (or, equivalently, a type system or abstract interpretation)
-can allow developers to find bugs in their code quickly and with little manual effort,
-or even avoid entire classes of errors by verifying that their code can never
-do some undesirable thing. However, these benefits come at a
-cost---developing such a static analyses requires an expert to spend a long time
-both designing and implementing the static analysis (for instance, a static analysis that checks 
-the types of the arguments to a format string was novel enough to be published as a paper at a recent 
-top-tier software engineering venue~\cite{format-string-checker}).
-Worse, the cost to build such static analyses means that many that are
-designed by the research community are never engineered to the level of practicality and precision
-that would be required to run on real-world code, so most programmers
-never gain their benefits.
+A well-designed static analysis (or, equivalently, a type system or
+abstract interpretation) can allow developers to find bugs in their
+code quickly and with little manual effort, or even avoid entire
+classes of errors by verifying that their code can never enter an
+undesirable state. However, these benefits come at a cost---developing
+such a static analyses requires an expert to spend a long time both
+designing and implementing the static analysis (for instance, a static
+analysis that checks the types of the arguments to a format string was
+novel enough to be published at a recent top-tier software engineering
+venue~\cite{format-string-checker}).  Worse, the cost to build such
+static analyses means that many that are designed by the research
+community are never engineered to the level of practicality and
+precision that would be required to run on real-world code, so most
+programmers never gain their benefits.
 
 We propose to deploy state-of-the-art techniques from the domain of program
 synthesis to allow programmers to specify a static analysis by providing
 examples of the code that the analysis should and should not permit.
+Our technique then synthesizes an abstract interpretation of the analysis,
+which is then mechanically translated to an analysis framework like
+the Checker Framework~\cite{checker-framework} or LLVM~\cite{lattner04:_llvm}.
+A simple analysis could be specified
+with just a few test cases (consider, for example, a function that needs to
+be called with arguments that are related more precisely than a typical
+type system would allow the programmer to express, like a pair of integers that
+must sum to zero---with a few test cases and our technique, an analysis that
+enforces this property could be run on an entire industrial codebase).
 This will relieve the burden of actually building the infrastructure
 required to deploy complex static analyses, so that specialized analyses
 with the precision required of industrial-strength tools can be built without
 requiring an intimate knowledge of the theory of abstract interpretation,
 which will allow non-specialists (like industrial programmers) to easily
-build new static analyses.
+build new, customizable static analyses.
 
 \section{Background}
 
@@ -138,6 +152,18 @@ The produced transfer function, along with the known lattice,
 contains enough information to mechanically create the practical
 analysis on top of a framework like the
 Checker Framework~\cite{checker-framework} or LLVM~\cite{lattner04:_llvm}.
+
+The main benefit of our approach is that it relieves the burden of
+writing the transfer function from the programmer. The programmer
+only needs to write a few slices of annotated code and to provide
+the lattice points---even the meaning of the lattice points (i.e. the least
+upper bound function) can be inferred from the examples. Instead of
+needing to write a lot of code in a possibly unfamiliar framework
+(i.e. the backend being used by our tool), the program only needs to
+write test cases in the language being analyzed---which is the langauge
+they are already working in! Further, actually writing the analysis
+would require testing it, and our tool's input is exactly the test
+cases a conscientious analysis developer would want to write.
 
 \section{Implementation}
 
@@ -253,6 +279,19 @@ an SMT solver to more precisely refine path conditions~\cite{pagai}.
 While all of these results combine abstract interpretations with
 an SAT or SMT solver in some way, none actually use the solver to
 synthesize the abstract interpretation.
+
+A similar domain is inferring invariants. Verifying a program is straightforward
+(and can be mechanized~\cite{hoare69}) if inductive invariants are supplied for
+each loop or recursive function, and generating these invariants is
+known to be a synthesis problem. Recent work has focused on learning
+invariants via a counter-example guided approach~\cite{garg2014ice} or
+on guessing invariants via an efficient random search algorithm and then
+checking whether they are correct~\cite{sharma2016invariant}.
+These approaches still require the programmer to specify the correctness
+properties of the system formally; our tool allows developers to specify
+the analysis they need with examples. In practice, developers write
+test cases like the ones our tool requires, but rarely formally specify
+the properties of their systems.
 
 Our approach relies on example-driven synthesis, which has been effectively
 applied in other domains. Microsoft's Excel spreadsheet tool can automatically
