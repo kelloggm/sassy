@@ -280,6 +280,16 @@ While all of these results combine abstract interpretations with
 an SAT or SMT solver in some way, none actually use the solver to
 synthesize the abstract interpretation.
 
+Counterexample-guided abstraction refinement (CEGAR) is a general technique
+for improving verification results~\cite{cegar}. This technique can be
+viewed as using a solver to refine an abstract interpretation into a
+more precise abstract interpretation, but we are not aware of any
+uses of the technique which generate an abstract interpretation from
+only user-provided examples. CEGAR has been used in many contexts,
+including model checking~\cite{clarke2003counterexample},
+test generation~\cite{beyer2004},
+and stability analysis~\cite{prabhakar2016counterexample}.
+
 A similar domain is inferring invariants. Verifying a program is straightforward
 (and can be mechanized~\cite{hoare69}) if inductive invariants are supplied for
 each loop or recursive function, and generating these invariants is
