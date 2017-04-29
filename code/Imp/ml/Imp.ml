@@ -24,6 +24,7 @@ let usage () =
     ; "  --test      compare interp and Python output              "
     ; "  --rand N    print random Imp program (N controls size)    "
     ; "  --help      display this usage information                "
+    ; "  --anno_flow pretty print Imp program with annotated state "
     ; "                                                            "
     ];
   exit 1
@@ -67,6 +68,9 @@ let parse_args () =
     | "--rand" :: n :: t ->
         setflag "mode" "rand";
         setflag "size" n;
+        loop t
+    | "--anno" :: t ->
+        setflag "mode" "anno_flow";
         loop t
     | s :: t ->
         if String.get s 0 = '-' then begin
@@ -151,5 +155,8 @@ let _ =
         |> ImpRand.rand_prog
         |> ImpPretty.prog_pretty
         |> print_endline
+  | "anno_flow" ->
+      let p = parse (getflag "src") in
+      print_endline (ImpDataflow.pretty_dataflow_prog (ImpDataflow.dataflow_prog p))
   | _ ->
       failwith "ERROR: bad mode"

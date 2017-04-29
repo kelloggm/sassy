@@ -16,8 +16,15 @@ function ckdeps {
     exit 1
   fi
 
-  if ! coqc --version | grep -q 'version 8.6'; then
-    echo "Error: bad coqc version, need Coq 8.6"
+  if ! coqc --version | grep -q 'version 8.5'; then
+    if ! coqc -- version | grep -q 'version 8.6'; then
+      echo "Error: bad coqc version, need Coq 8.5/8.6"
+      exit 1
+    fi
+  fi
+
+  if ocamlfind query Z3 2>&1 | grep -q 'not found'; then
+    echo "Error: we require Z3 to be installed."
     exit 1
   fi
   
