@@ -72,6 +72,9 @@ let parse_args () =
     | "--anno" :: t ->
         setflag "mode" "anno_flow";
         loop t
+    | "--constraints" :: t ->
+       setflag "mode" "sassy_cgen";
+       loop t
     | s :: t ->
         if String.get s 0 = '-' then begin
           print_endline ("ERROR: unknown flag " ^ s);
@@ -158,5 +161,8 @@ let _ =
   | "anno_flow" ->
       let p = parse (getflag "src") in
       print_endline (ImpDataflow.pretty_dataflow_prog (ImpDataflow.dataflow_prog p))
+  | "sassy_cgen" ->
+      let p = parse (getflag "src") in
+      print_endline (ImpDataflow.constraint_gen_prog (ImpDataflow.dataflow_prog p))
   | _ ->
       failwith "ERROR: bad mode"

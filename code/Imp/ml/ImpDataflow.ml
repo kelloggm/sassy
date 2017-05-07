@@ -106,7 +106,7 @@ stuff on the heap.
 *)
 let rec get_expr_atype expr astore =
     match expr with
-    | Eval v -> NoAnno (*TODO--This should use the abstraction function...*)
+    | Eval v -> Anno (explode (ImpPretty.expr_pretty expr)) (*TODO--This should use the abstraction function...*)
     | Evar var -> (match (get_atype var astore) with 
                  | None -> NoAnno (*TODO--This is use of a variable we haven't seen before*)
                  | Some a -> a)
@@ -256,4 +256,107 @@ let pretty_dataflow_prog' = function
     :: []
 
 let pretty_dataflow_prog p = 
-    String.concat "\n" (pretty_dataflow_prog' p)
+  String.concat "\n" (pretty_dataflow_prog' p)
+
+
+(* constraint generation *)
+
+(* 
+ * unwraps a pair of options and passes them to f 
+ * if either is None, returns the empty string
+ * otherwise, returns the result of calling f 
+ *
+let unwrap f opt1 opt2 =
+  match opt1 with
+  | Some x ->
+     begin match opt2 with
+     | Some y -> f x y
+     | None -> ""
+     end
+  | None -> ""*)
+
+(* 
+   AOp1 and AOp2 contain an operation and two abstract types, not annotations.
+   So we need another layer of recursion here: constraint_gen_set needs to
+   call something that produces lisp-y code for their subterms.
+ *)
+
+let op1_constraint_name = function
+  | Oneg -> "negate"
+  | Onot -> "not"
+
+let op2_constraint_name = function
+  | Oadd -> "plus"
+  | Osub -> "minus"
+  | Omul -> "times"
+  | Odiv -> "divide"
+  | Omod -> "mod"
+  | Oeq -> "eq"
+  | Olt -> "lt"
+  | Ole -> "lte"
+  | Oconj -> "and"
+  | Odisj -> "or"
+
+let rec constraint_gen_abstr_type atype =
+  match atype with
+  | NoAnno -> mkstr "" (* is this the right thing to do? *)
+  | Anno (name) -> implode name
+  | AOp1 (op, atypeInner) -> mkstr "(abstract-%s %s)" (op1_constraint_name op) (constraint_gen_abstr_type atypeInner)
+  | AOp2 (op, atypeL, atypeR) -> mkstr "(abstract-%s %s %s)" (op2_constraint_name op) (constraint_gen_abstr_type atypeL) (constraint_gen_abstr_type atypeR)
+  
+let constraint_gen_set alhs arhs =
+  match alhs with
+  | Anno (alhsName) ->
+     begin match arhs with
+     | NoAnno -> mkstr ""
+     | Anno (arhsName) -> mkstr "(assert (= (abstract-subtype %s %s) true))" (implode arhsName) (implode alhsName)
+     | AOp1 (_,_) -> mkstr "(assert (= %s %s))" (constraint_gen_abstr_type arhs) (implode alhsName)
+     | AOp2 (_,_,_) -> mkstr "(assert (= %s %s))" (constraint_gen_abstr_type arhs) (implode alhsName)
+     end
+  | _ -> mkstr ""
+  
+let rec constraint_gen_stmt = function
+     | AnnoStmt (stmt, astore) ->
+        begin match stmt with
+         | Sset(x, e) ->
+            let annoXOption = match x with
+              | Var (name) -> Printf.printf "var %s\n" (implode name) ; get_atype name astore
+              | AnnoVar (a, name) -> Printf.printf "annoVar %s\n" (implode name) ; get_atype name astore in
+            begin match annoXOption with
+              | Some (annoX) ->  constraint_gen_set annoX (get_expr_atype e astore)
+              | None -> mkstr "lhs unannotated. This situation is unimplemented."
+            end
+           
+         | _ ->
+            mkstr "stmt unimplemented"
+        end
+        :: [] (* <- note that all the strings above are being turned into lists! *)
+    | Seq (s1, s2) -> 
+        (constraint_gen_stmt s1)
+        @ (constraint_gen_stmt s2)
+    | Branch (e, ts, fs, st) ->
+        mkstr "if unimplemented" :: []
+    | While (e, b, st) ->
+        mkstr "while unimplemented" :: []
+  
+  
+let constraint_gen_ret ret_expr =
+  "return unimplemented"
+  
+let constraint_gen_func' = function
+  | AnnoFunc (name, params, anno_body, ret) ->
+     mkstr "functions unimplemented" :: []
+  
+let constraint_gen_func f =
+  String.concat "\n" (constraint_gen_func' f)
+  
+let constraint_gen_prog' = function
+  | AnnoProg (funcs, astmt, expr) ->
+     List.map constraint_gen_func funcs
+     @ constraint_gen_stmt astmt
+    @ constraint_gen_ret expr :: []
+  
+let constraint_gen_prog p =
+  String.concat "\n" (constraint_gen_prog' p)
+
+ 
