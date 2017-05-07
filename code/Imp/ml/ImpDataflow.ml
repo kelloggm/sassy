@@ -320,8 +320,8 @@ let rec constraint_gen_stmt = function
         begin match stmt with
          | Sset(x, e) ->
             let annoXOption = match x with
-              | Var (name) -> Printf.printf "var %s\n" (implode name) ; get_atype name astore
-              | AnnoVar (a, name) -> Printf.printf "annoVar %s\n" (implode name) ; get_atype name astore in
+              | Var (name) -> get_atype name astore
+              | AnnoVar (a, name) -> get_atype name astore in
             begin match annoXOption with
               | Some (annoX) ->  constraint_gen_set annoX (get_expr_atype e astore)
               | None -> mkstr "lhs unannotated. This situation is unimplemented."
