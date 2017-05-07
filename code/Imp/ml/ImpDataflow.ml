@@ -5,12 +5,16 @@ open ImpPretty
 
 (* An abstract type is either an annotation,
 or a basic op on an annotation.
-This should be simplified later. *)
+This should be simplified later.
+It can also be a constant; this is
+used to generate constraints for the
+abstraction function. *)
 type abstr_type = 
     | Anno of char list
     | AOp1 of op1 * abstr_type
     | AOp2 of op2 * abstr_type * abstr_type
     | NoAnno
+    | Constant of char list
 
 let var_to_astore = function
     | Var v -> (v, NoAnno)
@@ -106,7 +110,7 @@ stuff on the heap.
 *)
 let rec get_expr_atype expr astore =
     match expr with
-    | Eval v -> Anno (explode (ImpPretty.expr_pretty expr)) (*TODO--This should use the abstraction function...*)
+    | Eval v -> Constant (explode (ImpPretty.expr_pretty expr)) (*TODO--This should use the abstraction function...*)
     | Evar var -> (match (get_atype var astore) with 
                  | None -> NoAnno (*TODO--This is use of a variable we haven't seen before*)
                  | Some a -> a)
@@ -189,6 +193,7 @@ let dataflow_prog = function
 
 let rec pretty_anno = function
     | Anno a -> implode a
+    | Constant c -> implode c
     | AOp1 (op1, a1) ->
         mkstr "(%s %s)"
         (ImpPretty.op1_pretty op1) 
@@ -301,6 +306,7 @@ let rec constraint_gen_abstr_type atype =
   match atype with
   | NoAnno -> mkstr "" (* is this the right thing to do? *)
   | Anno (name) -> implode name
+  | Constant (c) -> implode c
   | AOp1 (op, atypeInner) -> mkstr "(abstract-%s %s)" (op1_constraint_name op) (constraint_gen_abstr_type atypeInner)
   | AOp2 (op, atypeL, atypeR) -> mkstr "(abstract-%s %s %s)" (op2_constraint_name op) (constraint_gen_abstr_type atypeL) (constraint_gen_abstr_type atypeR)
   
@@ -309,6 +315,7 @@ let constraint_gen_set alhs arhs =
   | Anno (alhsName) ->
      begin match arhs with
      | NoAnno -> mkstr ""
+     | Constant (arhsConst) -> mkstr "(assert (= (abstract-abstraction %s) %s))" (implode arhsConst) (implode alhsName)
      | Anno (arhsName) -> mkstr "(assert (= (abstract-subtype %s %s) true))" (implode arhsName) (implode alhsName)
      | AOp1 (_,_) -> mkstr "(assert (= %s %s))" (constraint_gen_abstr_type arhs) (implode alhsName)
      | AOp2 (_,_,_) -> mkstr "(assert (= %s %s))" (constraint_gen_abstr_type arhs) (implode alhsName)
@@ -334,10 +341,10 @@ let rec constraint_gen_stmt = function
     | Seq (s1, s2) -> 
         (constraint_gen_stmt s1)
         @ (constraint_gen_stmt s2)
-    | Branch (e, ts, fs, st) ->
-        mkstr "if unimplemented" :: []
-    | While (e, b, st) ->
-        mkstr "while unimplemented" :: []
+    | Branch (condition_expr, true_stmt, false_stmt, astore) ->
+        constraint_gen_stmt true_stmt @ constraint_gen_stmt false_stmt @ []
+    | While (condition_expr, body_stmt, astore) ->
+        constraint_gen_stmt body_stmt @ []
   
   
 let constraint_gen_ret ret_expr =
