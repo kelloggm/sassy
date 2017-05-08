@@ -347,12 +347,17 @@ let rec constraint_gen_stmt = function
         constraint_gen_stmt body_stmt @ []
   
   
-let constraint_gen_ret ret_expr =
-  "return unimplemented"
+let constraint_gen_ret varOpt ret_expr =
+  match varOpt with
+  | None -> "" :: []
+  | Some var ->
+     match var with
+     | Var(v) -> "" :: []
+     | AnnoVar(a, v) -> constraint_gen_set (Anno a) (anno_expr_anno ret_expr) :: []
   
 let constraint_gen_func' = function
   | AnnoFunc (name, params, anno_body, ret) ->
-     mkstr "functions unimplemented" :: []
+     constraint_gen_ret (Some name) ret @ constraint_gen_stmt anno_body @ []
   
 let constraint_gen_func f =
   String.concat "\n" (constraint_gen_func' f)
@@ -361,7 +366,7 @@ let constraint_gen_prog' = function
   | AnnoProg (funcs, astmt, expr) ->
      List.map constraint_gen_func funcs
      @ constraint_gen_stmt astmt
-    @ constraint_gen_ret expr :: []
+    @ constraint_gen_ret None expr @ []
   
 let constraint_gen_prog p =
   String.concat "\n" (constraint_gen_prog' p)

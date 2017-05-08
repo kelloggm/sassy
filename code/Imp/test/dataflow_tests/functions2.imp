@@ -1,0 +1,29 @@
+def @Even get_two() {
+  return 2;
+}
+
+def @Odd get_one() {
+  return 1;
+}
+
+def add_one(x) {
+    return x + 1;
+}
+
+def sub_one(x) {
+    return x - 1;
+}
+
+inp = read_int();
+if (inp % 2 == 0) {
+   @Even e = inp;
+   @Odd o1 = add_one(e);
+   @Odd o2 = sub_one(e);
+}
+else {
+   @Odd o = inp;
+   @Even e1 = add_one(o);
+   @Even e2 = sub_one(o);
+}
+
+return inp;
