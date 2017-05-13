@@ -216,6 +216,8 @@ Fixpoint interp_s (fuel : nat) (env : env) (s : store) (h : heap)
         | Some (s1, h1) => interp_s n env s1 h1 stmt2
         | None => None
         end
+    | AStmt astore stmt1 =>
+      interp_s n env s h stmt1
     end
   end.
 

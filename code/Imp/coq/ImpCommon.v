@@ -251,4 +251,5 @@ Fixpoint size_s (p : stmt) : nat :=
   | Sifelse _ p1 p2 => S (size_s p1 + size_s p2)
   | Swhile _ p1 => S (size_s p1)
   | Sseq p1 p2 => S (size_s p1 + size_s p2)
+  | AStmt st p1 => size_s p1
   end%nat.

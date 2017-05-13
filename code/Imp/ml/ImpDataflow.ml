@@ -116,6 +116,15 @@ let rec get_expr_atype expr astore =
     | Eidx (e1, e2) -> NoAnno (*TODO--Index expression gets a value from the heap.*)
     | Eanno (anno, expr) -> (Anno anno)
 
+let get_astore_anno = function 
+    | AnnoEq (v, a) -> (v, (Anno a))
+
+let rec update_from_astore anno_st astore = 
+    match anno_st with
+    | AnnoSt a -> add_to_store (get_astore_anno a) astore
+    | AnnoSeq (a, r) -> 
+        (merge_astores (update_from_astore r astore) (add_to_store (get_astore_anno a) astore))
+
 (* Abstract data flow of annotations for statements. *)
 let rec dataflow_stmt stmt astore func_env = 
     match stmt with
@@ -155,6 +164,8 @@ let rec dataflow_stmt stmt astore func_env =
     | Sseq (p1, p2) -> 
     let first = dataflow_stmt p1 astore func_env in
     Seq (first, (dataflow_stmt p2 (anno_stmt_astore first) func_env))
+    | AStmt (anno_st, p1) -> 
+        (dataflow_stmt p1 (update_from_astore anno_st astore) func_env) (* TODO--Actually use these annotations...*)
 
 (* Map from functions to an entry in the function environment. 
 Note that we only use annotations from the *name* of the function.
