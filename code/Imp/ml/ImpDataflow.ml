@@ -91,7 +91,7 @@ let rec anno_stmt_astore = function
     | While (e, a1, st) -> st
 
 type anno_func =
-    | AnnoFunc of var * char list list * anno_stmt * anno_expr
+    | AnnoFunc of var * var list * anno_stmt * anno_expr
 
 type anno_prog =
     | AnnoProg of anno_func list * anno_stmt * anno_expr
@@ -166,8 +166,7 @@ let function_atype = function
 (* Create a 'parameters' abstract store for the inside
 of a function. *)
 let params_astore params =
-    let create_empty param = (param, NoAnno)
-    in List.map create_empty params
+    List.map var_to_astore params
 
 let dataflow_func func_env = function
     | Func (name, params, stmt, expr) ->
@@ -237,9 +236,10 @@ let pretty_dataflow_func' = function
     | AnnoFunc (name, params, anno_body, ret) ->
         mkstr "def %s(%s) {"
         (ImpPretty.var_pretty name)
-        (params |> List.map implode
+        (params |> List.map ImpPretty.var_pretty
                 |> String.concat ", ")
-      :: indent (pretty_anno_stmt anno_body)
+      :: indent ((pretty_astore (params_astore params)) :: [])
+      @ indent (pretty_anno_stmt anno_body)
       @ indent ((mkstr "return %s;" (ImpPretty.expr_pretty (anno_expr_expr ret))) :: [])
       @ mkstr "[[ return :: %s ]]" (pretty_anno (anno_expr_anno ret))
       :: "}" :: []

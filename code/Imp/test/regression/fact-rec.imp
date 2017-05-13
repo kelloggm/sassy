@@ -1,4 +1,4 @@
-def @Big fact(n) {
+def @Big fact(@Small n) {
   res = @Small 1;
   if(0 < n) {
     @Big x = @Big fact(n - 1);

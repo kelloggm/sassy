@@ -104,7 +104,7 @@ let func_pretty' = function
   | Func (name, params, body, ret) ->
       mkstr "def %s(%s) {"
         (var_pretty name)
-        (params |> List.map implode
+        (params |> List.map var_pretty
                 |> String.concat ", ")
       :: indent (stmt_pretty' body)
       @  indent ((mkstr "return %s;" (expr_pretty ret)) :: [])

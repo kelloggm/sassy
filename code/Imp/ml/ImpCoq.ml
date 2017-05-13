@@ -125,7 +125,7 @@ let func_coq' = function
   | Func (name, params, body, ret) ->
       mkstr "(Func %s %s"
         (var_coq name)
-        (list_coq (List.map identifier_coq params))
+        (list_coq (List.map var_coq params))
       :: indent (stmt_coq' body)
       @  add_to_last ")" (indent (expr_coq ret :: []))
 

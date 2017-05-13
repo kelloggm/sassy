@@ -53,7 +53,7 @@ Inductive stmt : Type :=
 | Sseq : stmt -> stmt -> stmt.
 
 Inductive func : Type :=
-| Func : var -> list string -> stmt -> expr -> func.
+| Func : var -> list var -> stmt -> expr -> func.
 
 Inductive prog : Type :=
 | Prog : list func -> stmt -> expr -> prog.

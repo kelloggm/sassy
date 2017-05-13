@@ -83,10 +83,10 @@ params :
       { $2 }
 
 idlist :
-  | ID
-      { explode $1 :: [] }
-  | ID COMMA idlist
-      { explode $1 :: $3 }
+  | aID
+      { $1 :: [] }
+  | aID COMMA idlist
+      { $1 :: $3 }
 
 args :
   | LPAREN RPAREN

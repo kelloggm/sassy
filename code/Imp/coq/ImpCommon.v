@@ -55,12 +55,12 @@ Fixpoint updatestr (s : store)
   end.
 
 Fixpoint updates (s : store)
-  (xs : list string) (vs : list val) : option store :=
+  (xs : list var) (vs : list val) : option store :=
   match xs, vs with
   | nil, nil =>
       Some s
   | x :: xs', v :: vs' =>
-      updates (updatestr s x v) xs' vs'
+      updates (updatestr s (clean_anno_var x) v) xs' vs'
   | _, _ => None
   end.
 

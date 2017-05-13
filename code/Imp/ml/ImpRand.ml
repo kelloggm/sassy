@@ -98,7 +98,7 @@ let rec rand_stmt size =
 
 let rand_func size =
   Func ( rand_var ()
-       , rand_list rand_ident () size
+       , rand_list rand_var () size
        , rand_stmt size
        , rand_expr size
        )

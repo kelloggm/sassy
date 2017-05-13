@@ -81,7 +81,7 @@ let func_py' = function
   | Func (name, params, body, ret) ->
       mkstr "def %s(%s):"
         (var_py name)
-        (params |> List.map implode
+        (params |> List.map var_py
                 |> String.concat ", ")
       :: indent (stmt_py' body)
       @  indent ((mkstr "return %s" (expr_py ret)) :: [])
