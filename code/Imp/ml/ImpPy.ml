@@ -73,6 +73,7 @@ let rec stmt_py' = function
   | Swhile (e, p1) ->
       mkstr "while %s:" (expr_py e)
         :: indent (stmt_py' p1)
+  | AStmt (st, p1) -> stmt_py' p1
 
 let stmt_py s =
   String.concat "\n" (stmt_py' s)

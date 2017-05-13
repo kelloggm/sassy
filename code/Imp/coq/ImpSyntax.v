@@ -27,6 +27,13 @@ Inductive var : Type :=
 | Var : string -> var
 | AnnoVar : string -> string -> var.
 
+Inductive anno_mem : Type :=
+| AnnoEq : string -> string -> anno_mem.
+
+Inductive anno_store : Type :=
+| AnnoSt : anno_mem -> anno_store
+| AnnoSeq : anno_mem -> anno_store -> anno_store.
+
 Inductive expr : Type :=
 | Eval : val -> expr
 | Evar : string -> expr
@@ -50,7 +57,8 @@ Inductive stmt : Type :=
 | Scall : var -> var -> list expr -> stmt
 | Sifelse : expr -> stmt -> stmt -> stmt
 | Swhile : expr -> stmt -> stmt
-| Sseq : stmt -> stmt -> stmt.
+| Sseq : stmt -> stmt -> stmt
+| AStmt : anno_store -> stmt -> stmt.
 
 Inductive func : Type :=
 | Func : var -> list var -> stmt -> expr -> func.
