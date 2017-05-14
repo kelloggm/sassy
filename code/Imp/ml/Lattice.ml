@@ -91,6 +91,8 @@ let lub elt1 elt2 =
     | hd :: tl -> hd
     | [] -> raise (Bad_Lub (mkstr "Unable to get a LUB of element %s and %s" (implode (get_element_name elt1)) (implode (get_element_name elt2))))
 
+
+(* TODO--move these into their own files, maybe add an abstraction function?*)
 let parity_lattice =
     let top = Element ((explode "@Both"), []) in
     let even = Element ((explode "@Even"), (top :: [])) in
