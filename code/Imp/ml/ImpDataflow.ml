@@ -2,6 +2,7 @@ open ZUtil
 open ImpSyntax
 open ImpCommon
 open ImpPretty
+open Lattice
 
 (* An abstract type is either an annotation,
 or a basic op on an annotation.
