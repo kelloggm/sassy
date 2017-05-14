@@ -4,6 +4,8 @@ open ImpCommon
 open ImpPretty
 open Lattice
 
+(* TODO--make this work with lattices*)
+
 (* An abstract type is either an annotation,
 or a basic op on an annotation.
 This should be simplified later. *)
