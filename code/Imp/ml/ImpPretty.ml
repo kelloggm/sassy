@@ -57,6 +57,14 @@ let rec expr_pretty = function
 let indent ls =
   List.map (fun l -> "  " ^ l) ls
 
+let anno_mem_pretty = function
+  | AnnoEq (v, a) -> (mkstr "%s = %s" (implode v) (implode a))
+
+
+let rec anno_store_pretty = function
+  | AnnoSt a -> (anno_mem_pretty a) :: []
+  | AnnoSeq (a, rest) -> (anno_mem_pretty a) :: (anno_store_pretty rest)
+
 let rec stmt_pretty' = function
   | Snop ->
       "nop;" :: []
@@ -96,6 +104,9 @@ let rec stmt_pretty' = function
       @ "}" :: []
   | Sseq (p1, p2) ->
       stmt_pretty' p1 @ stmt_pretty' p2
+  | AStmt (st, p1) ->
+      "[ " :: (anno_store_pretty st) @ " ]"
+      :: stmt_pretty' p1
 
 let stmt_pretty s =
   String.concat "\n" (stmt_pretty' s)
@@ -104,7 +115,7 @@ let func_pretty' = function
   | Func (name, params, body, ret) ->
       mkstr "def %s(%s) {"
         (var_pretty name)
-        (params |> List.map implode
+        (params |> List.map var_pretty
                 |> String.concat ", ")
       :: indent (stmt_pretty' body)
       @  indent ((mkstr "return %s;" (expr_pretty ret)) :: [])

@@ -73,6 +73,7 @@ let rec stmt_py' = function
   | Swhile (e, p1) ->
       mkstr "while %s:" (expr_py e)
         :: indent (stmt_py' p1)
+  | AStmt (st, p1) -> stmt_py' p1
 
 let stmt_py s =
   String.concat "\n" (stmt_py' s)
@@ -81,7 +82,7 @@ let func_py' = function
   | Func (name, params, body, ret) ->
       mkstr "def %s(%s):"
         (var_py name)
-        (params |> List.map implode
+        (params |> List.map var_py
                 |> String.concat ", ")
       :: indent (stmt_py' body)
       @  indent ((mkstr "return %s" (expr_py ret)) :: [])

@@ -83,10 +83,10 @@ params :
       { $2 }
 
 idlist :
-  | ID
-      { explode $1 :: [] }
-  | ID COMMA idlist
-      { explode $1 :: $3 }
+  | aID
+      { $1 :: [] }
+  | aID COMMA idlist
+      { $1 :: $3 }
 
 args :
   | LPAREN RPAREN
@@ -100,18 +100,33 @@ exprlist :
   | expr COMMA exprlist
       { $1 :: $3 }
 
+aID :
+  | ID
+    { Var (explode $1)}
+  | ANNO ID
+    { AnnoVar (explode $1, explode $2)}
+
+anno:
+    | ID ASSIGN ANNO
+    { AnnoEq (explode $1, explode $3) }
+
+anno_list:
+    | anno
+        { AnnoSt ($1) }
+    | anno COMMA anno_list
+        { AnnoSeq ($1, $3) }
+
+anno_store:
+  | LSQUARE anno_list RSQUARE
+    { $2 }
+
 stmt :
   | lstmt
       { $1 }
   | lstmt stmt
       { Sseq ($1, $2) }
-
-
-aID :
-  | ID
-    {Var (explode $1)}
-  | ANNO ID
-    {AnnoVar (explode $1, explode $2)}
+  | anno_store stmt
+      { AStmt ($1, $2)}
 
 lstmt :
   | NOP SEMI
