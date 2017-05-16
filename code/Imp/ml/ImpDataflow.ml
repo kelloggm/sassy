@@ -368,7 +368,8 @@ let constraint_gen_set alhs arhs =
      end
   | _ -> mkstr ""
   
-let rec constraint_gen_stmt lattice = function
+let rec constraint_gen_stmt lattice anno_stmt =
+  match anno_stmt with
      | AnnoStmt (stmt, astore) ->
         begin match stmt with
          | Sset(x, e) ->
@@ -379,9 +380,11 @@ let rec constraint_gen_stmt lattice = function
               | Some (annoX) ->  constraint_gen_set annoX (get_expr_atype lattice e astore)
               | None -> mkstr "lhs unannotated. This situation is unimplemented."
             end
-           
+         | Scall(x, f, es) ->
+         (* Do nothing? It looks like we're already handling this correctly. *)
+            mkstr ""
          | _ ->
-            mkstr "stmt unimplemented"
+            mkstr "stmt unimplemented: %s" (String.concat "\n" (List.map Bytes.to_string (pretty_anno_stmt anno_stmt)))
         end
         :: [] (* <- note that all the strings above are being turned into lists! *)
     | Seq (s1, s2) -> 
