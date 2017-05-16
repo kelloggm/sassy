@@ -1,6 +1,7 @@
-def @Big fact(n) {
+def @Big fact(@Small n) {
   res = @Small 1;
   if(0 < n) {
+    [n=@Big]
     @Big x = @Big fact(n - 1);
     @Big res = @Big n * x;
   }

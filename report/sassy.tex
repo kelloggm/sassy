@@ -298,6 +298,24 @@ we could ask the programmer to provide the abstraction function for
 constants directly) and automatically inferring transfer functions
 is our most pressing concern.
 
+Related, we are also concerned that due to ambiguity in the provided
+examples, the solver may produce an unsound transfer function.
+As a pathological example, consider a transfer function where
+everything goes to bottom. We would like to bias the solver
+so that when it encounters ambiguity, it prefers a solution
+closer to top. We mentioned in \secref{tech} that a possible solution
+to the ambiguity issue is to iteratively call the solver, asking for
+a different solution. We could then order the transfer functions
+by how close they are to top (i.e. if one transfer function sends something
+to bottom, but another sends it to top, select the one that sends it to top).
+This is a inelegant solution that may make the
+time required to run the tool infeasible, however, because
+many solver calls could be required.
+As part of our investigation, we will try to
+determine if this actually is a problem when writing practical
+analyses (or do a reasonable set of test cases prevent this?).
+
+
 \section{Evaluation}
 
 \begin{table}

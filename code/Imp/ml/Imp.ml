@@ -1,6 +1,8 @@
 open ZUtil
 open ImpSyntax
 open ImpCommon
+open Sys
+open Lattices
 
 let _ = begin
   ImpLib.pretty := begin
@@ -24,7 +26,10 @@ let usage () =
     ; "  --test      compare interp and Python output              "
     ; "  --rand N    print random Imp program (N controls size)    "
     ; "  --help      display this usage information                "
-    ; "  --anno_flow pretty print Imp program with annotated state "
+    ; "  --anno      pretty print Imp program with annotated state "
+    ; "              (requires lattice)                            "
+    ; "  --lattice  specifies the lattice to use for sassy stuff.  "
+    ; "             currently support parity, nullness             "
     ; "                                                            "
     ];
   exit 1
@@ -72,9 +77,12 @@ let parse_args () =
     | "--anno" :: t ->
         setflag "mode" "anno_flow";
         loop t
-    | "--constraints" :: t ->
-       setflag "mode" "sassy_cgen";
-       loop t
+    | "--generate-constraints" :: t ->
+        setflag "mode" "generate-constraints";
+        loop t
+    | "--lattice" :: n :: t ->
+        setflag "lattice" n; 
+        loop t
     | s :: t ->
         if String.get s 0 = '-' then begin
           print_endline ("ERROR: unknown flag " ^ s);
@@ -122,6 +130,16 @@ let interp p =
   in
   interp n p
 
+(* Get the path to each file in a directory *)
+let get_all_files directory =
+  let combine_directory directory file =
+    String.concat "/" (directory :: file :: [])
+  in
+  let all_files = Array.to_list (Sys.readdir directory)
+  in
+    List.map (combine_directory directory) all_files
+
+
 let _ =
   parse_args ();
   match getflag "mode" with
@@ -159,10 +177,16 @@ let _ =
         |> ImpPretty.prog_pretty
         |> print_endline
   | "anno_flow" ->
+      let lattice = Lattices.get_lattice_by_name (getflag "lattice") in 
       let p = parse (getflag "src") in
-      print_endline (ImpDataflow.pretty_dataflow_prog (ImpDataflow.dataflow_prog p))
-  | "sassy_cgen" ->
-      let p = parse (getflag "src") in
-      print_endline (ImpDataflow.constraint_gen_prog (ImpDataflow.dataflow_prog p))
+      print_endline (ImpDataflow.pretty_dataflow_prog (ImpDataflow.dataflow_prog lattice p))
+  | "generate-constraints" ->
+    let targets = if is_directory (getflag "src") then get_all_files(getflag "src") else ((getflag "src") :: [])
+    in
+    let parsed_files = List.map parse targets in
+    let lattice = Lattices.get_lattice_by_name (getflag "lattice") in
+    let dataflow_progs = List.map (ImpDataflow.dataflow_prog lattice) parsed_files in
+    List.iter print_endline (List.map (ImpDataflow.constraint_gen_prog lattice) dataflow_progs); 
+    print_endline ""
   | _ ->
       failwith "ERROR: bad mode"
