@@ -81,6 +81,21 @@ let store_coq sr =
   in
   list_coq (List.map aux sr)
 
+let anno_coq anno_mem =
+  match anno_mem with
+  | AnnoEq (s1, s2) ->
+      mkstr "(AnnoEq %s %s)" (implode s1) (implode s2)
+
+let rec anno_store_coq astore =
+  match astore with
+  | AnnoSt anno -> 
+    mkstr "(Anno %s)"
+      (anno_coq anno)
+  | AnnoSeq (anno, rest) -> 
+    mkstr "(AnnoSeq %s %s)"
+      (anno_coq anno)
+      (anno_store_coq rest)
+  
 let rec stmt_coq' = function
   | Snop ->
       "Snop" :: []
@@ -117,6 +132,9 @@ let rec stmt_coq' = function
   | Sseq (p1, p2) ->
       "(Sseq " :: stmt_coq' p1
       @ add_to_last ")" (stmt_coq' p2)
+  | AStmt (astore, p1) ->
+      ((mkstr "(AStmt %s " (anno_store_coq astore)) :: [])
+      @ add_to_last ")" (stmt_coq' p1)
 
 let stmt_coq s =
   String.concat "\n" (stmt_coq' s)
@@ -125,7 +143,7 @@ let func_coq' = function
   | Func (name, params, body, ret) ->
       mkstr "(Func %s %s"
         (var_coq name)
-        (list_coq (List.map identifier_coq params))
+        (list_coq (List.map var_coq params))
       :: indent (stmt_coq' body)
       @  add_to_last ")" (indent (expr_coq ret :: []))
 
