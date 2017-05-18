@@ -126,3 +126,14 @@ let lub elt1 elt2 =
     match List.sort compare intersection with
     | (hd,_) :: tl -> hd
     | [] -> raise (Bad_Lub (mkstr "Unable to get a LUB of element %s and %s" (implode (get_element_name elt1)) (implode (get_element_name elt2))))
+
+
+let generate_element_constraint elt =
+  mkstr "(define-const %s Elt)" (implode (get_element_name elt))
+          
+(* 
+ * Generate the smt2 code to send to z3 that defines a lattice.
+ * Returns a list of strings, each of which is a constraint.
+ *)
+let generate_lattice_constraints lattice =
+  "(define-sort Elt)" :: (List.map generate_element_constraint lattice) 

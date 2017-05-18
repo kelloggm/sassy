@@ -11,38 +11,46 @@
 #
 # rg - list
 # ln - string of input/output
-# zcs - z3 constraint string
+# zdf - z3 define/declare string
+# zas - z3 assertion string
 # lcn - literal constant
 # lae - lattice element
 
 import fileinput
 
-rgzcs = []
+rgzas = []
+rgzdf = []
 
 mplcn_lae = {}
 
 for ln in fileinput.input():
     ln = ln.strip()
     if ln:
-        if "abstract-abstraction" in ln:
-            rgst = ln.split()
-            lcn = rgst[3].replace(")", "")
-            lae = rgst[4].replace(")", "")
-            mplcn_lae[lcn] = lae
+        if ln.startswith("(assert"):
+            if "abstract-abstraction" in ln:
+                rgst = ln.split()
+                lcn = rgst[3].replace(")", "")
+                lae = rgst[4].replace(")", "")
+                mplcn_lae[lcn] = lae
         
-        rgzcs.append(ln)
-
-rgzcsFiltered = []
+            rgzas.append(ln)
+        else:
+            rgzdf.append(ln)
+                
+rgzasFiltered = []
         
-for zcs in rgzcs:
+for zas in rgzas:
     for lcn in mplcn_lae.keys():
-        if " " + lcn in zcs and not "abstract-abstraction" in zcs:
-            zcs = zcs.replace(lcn, mplcn_lae[lcn])
+        if " " + lcn in zas and not "abstract-abstraction" in zas:
+            zas = zas.replace(lcn, mplcn_lae[lcn])
 
-    if zcs not in rgzcsFiltered:
-        rgzcsFiltered.append(zcs)
+    if zas not in rgzasFiltered:
+        rgzasFiltered.append(zas)
 
-rgzcsFiltered.sort()
-        
-for zcs in rgzcsFiltered:
-    print zcs
+rgzasFiltered.sort()
+
+for zdf in rgzdf:
+    print zdf
+
+for zas in rgzasFiltered:
+    print zas

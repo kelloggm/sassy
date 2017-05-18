@@ -186,6 +186,7 @@ let _ =
     let parsed_files = List.map parse targets in
     let lattice = Lattices.get_lattice_by_name (getflag "lattice") in
     let dataflow_progs = List.map (ImpDataflow.dataflow_prog lattice) parsed_files in
+    List.iter print_endline (Lattice.generate_lattice_constraints lattice);
     List.iter print_endline (List.map (ImpDataflow.constraint_gen_prog lattice) dataflow_progs); 
     print_endline ""
   | _ ->
