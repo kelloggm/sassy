@@ -15,11 +15,16 @@
 # zas - z3 assertion string
 # lcn - literal constant
 # lae - lattice element
+# btf - binary transfer function
+# utf - unary transfer function
 
 import fileinput
 
 rgzas = []
 rgzdf = []
+
+rgbtf = ["plus", "minus", "times", "divide", "mod", "eq", "lt", "lte", "and", "or"]
+rgutf = ["negate", "not"]
 
 mplcn_lae = {}
 
@@ -52,5 +57,17 @@ rgzasFiltered.sort()
 for zdf in rgzdf:
     print zdf
 
+for utf in rgutf:
+    print "(declare-fun abstract-" + utf + " (Elt) Elt)"
+
+for btf in rgbtf:
+    print "(declare-fun abstract-" + btf + " (Elt Elt) Elt)"
+
+print "(declare-fun abstract-subtype (Elt Elt) Bool)"
+print "(declare-fun abstract-abstraction (Int) Elt)"
+    
 for zas in rgzasFiltered:
     print zas
+
+print "(check-sat)"
+print "(get-model)"
