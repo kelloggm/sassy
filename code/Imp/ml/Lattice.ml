@@ -52,6 +52,31 @@ let get_all_up elt =
     in
         unique_elements (get_all_up_rec 0 elt)
 
+exception No_Top
+      
+(* Returns the top element in the lattice *)
+let rec get_top lattice =
+  match lattice with
+  | hd :: tl -> begin match hd with Element(name,elts) ->
+                  begin match elts with
+                  | [] -> name
+                  | h :: t -> get_top tl
+                  end
+                end
+  | [] -> raise No_Top
+              
+(* Returns the bottom element(s) in the lattice *)
+let get_bots lattice =
+  let rec all_with_subtype lat acc =
+    match lat with [] -> acc
+                 | hd :: tl ->
+                    match hd with Element(_, up) -> all_with_subtype tl (up @ acc)
+  in
+  let elts_with_subtype = unique_elements (all_with_subtype lattice []) in
+  let bot_types = List.filter (fun x -> not (List.mem x elts_with_subtype)) lattice in
+  let bot_names = List.map get_element_name bot_types in
+  String.concat ", " (List.map implode bot_names)
+                            
 (* Bunch of helper functions for LUB *)
 let elt_eq elt1 elt2=
     match elt1 with
@@ -149,5 +174,5 @@ let generate_element_constraint elt =
  * Returns a list of strings, each of which is a constraint.
  *)
 let generate_lattice_constraints lattice =
-  "(define-sort Elt () Int)" :: (List.map generate_element_constraint lattice)
+  mkstr "(define-sort Elt () Int)\n;Top: %s\n;Bottom: %s" (implode (get_top lattice)) (get_bots lattice) :: (List.map generate_element_constraint lattice)
   @ generate_asserts lattice

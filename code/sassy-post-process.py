@@ -17,6 +17,8 @@
 # lae - lattice element
 # btf - binary transfer function
 # utf - unary transfer function
+# tel - top element in lattice
+# bel - bottom element in lattice
 
 import fileinput
 
@@ -25,6 +27,9 @@ rgzdf = []
 
 rgbtf = ["plus", "minus", "times", "divide", "mod", "eq", "lt", "lte", "and", "or"]
 rgutf = ["negate", "not"]
+
+tel = ""
+rgbel = []
 
 mplcn_lae = {}
 
@@ -39,6 +44,11 @@ for ln in fileinput.input():
                 mplcn_lae[lcn] = lae
         
             rgzas.append(ln)
+        elif ln.startswith(";Top: "):
+            tel = ln.split()[1].strip()
+        elif ln.startswith(";Bottom: "):
+            for bel in ln.split()[1].split(", "):
+                rgbel.append(bel)
         else:
             rgzdf.append(ln)
                 
@@ -59,9 +69,15 @@ for zdf in rgzdf:
 
 for utf in rgutf:
     print "(declare-fun abstract-" + utf + " (Elt) Elt)"
+    print "(assert (= (abstract-" + utf + " " + tel + ") " + tel + "))"
+    for bel in rgbel:
+        print "(assert (= (abstract-" + utf + " " + bel + ") " + bel + "))"
 
 for btf in rgbtf:
     print "(declare-fun abstract-" + btf + " (Elt Elt) Elt)"
+    print "(assert (= (abstract-" + btf + " " + tel + " " + tel + ") " + tel + "))"
+    for bel in rgbel:
+        print "(assert (= (abstract-" + btf + " " + bel + " " + bel + ") " + bel + "))"
 
 print "(declare-fun abstract-subtype (Elt Elt) Bool)"
 print "(declare-fun abstract-abstraction (Int) Elt)"
