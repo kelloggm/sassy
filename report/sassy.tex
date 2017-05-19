@@ -316,6 +316,7 @@ determine if this actually is a problem when writing practical
 analyses (or do a reasonable set of test cases prevent this?).
 
 \section{Evaluation}
+\label{sec-eval}
 
 \begin{table}
 \centering
@@ -323,7 +324,7 @@ analyses (or do a reasonable set of test cases prevent this?).
   
   Analysis & Test Cases & Precision & Recall & F-measure\\ 
   \midrule
-  Parity0 & - & - & - & - \\
+  Parity0 & 4 & 0.46 & 0.46 & 0.46 \\
   Parity1 & - & - & - & - \\
   ... & - & - & - & - \\
   Sign0 & - & - & - & - \\
@@ -344,7 +345,7 @@ analyses (or do a reasonable set of test cases prevent this?).
  F-measure are calculated in the standard way against the ground
  truth transfer function.}
  \label{tab-analyses}
-\end{table}
+\end{table} 
 
 We will evaluate our approach by comparing the synthesized transfer
 functions for several analyses to the ground truth accepted transfer
@@ -356,9 +357,11 @@ IMP augmented with a heap), and a range analysis, in that order.
 Each row in the table corresponds to a generated set of transfer functions.
 For instance,
 the row labeled ``Parity0'' states that it is a parity analysis
-(from the name), that it was synthesized from $FIXME$ test cases,
+(from the name), that it was synthesized from 4 test cases,
 and its precision, recall, and F-measure when compared to the ground
-truth transfer functions were $FIXME$, $FIXME$, and $FIXME$, respectively.
+truth transfer functions were all 0.46. Because the parity analysis is only
+relevant for integers, only the transfer functions on integer expressions
+were considered.
 The ground truth transfer functions were created manually by the authors,
 but follow the established standards for their respective analyses.
 Precision, recall, and F-measure were calculated following the standard
@@ -368,7 +371,76 @@ recall is the percentage of transfer function entries in the ground truth
 that appear in the synthesized transfer function, and F-measure is the
 geometric mean of precision and recall.
 
-Our goal is to achieve a $1.0$ F-measure on at least the parity analysis.
+\begin{table}
+\centering
+ \begin{tabular}{l c c c c }
+  
+  Function & Correct & Incorrect & Imprecise & Total\\ 
+  \midrule
+  Plus & 7 & 0 & 9 & 16 \\
+  Minus & 6 & 0 & 10 & 16 \\
+  Times & 7 & 3 & 6 & 16 \\
+  Divide & 9 & 0 & 7 & 16 \\
+  Mod & 8 & 0 & 8 & 16 \\
+  Negate & 2 & 0 & 2 & 4 \\
+  \midrule
+  Total & 39 & 3 & 42 & 84 \\
+ \end{tabular}
+ \caption{Breakdown of the results of synthesizing transfer functions
+ for a parity analysis from just four simple test cases. Correct is number
+ of entries in the matrix that match the ground truth transfer function
+ exactly; Incorrect is the number that do not match and are unsound;
+ Imprecise is the number that do not match, but are still sound. The
+ precision/recall in Table I can be calculated by dividing
+ the Correct column by the Total column.}
+ \label{tab-parity0}
+\end{table}
+
+\begin{table}
+\centering
+ \begin{tabular}{l c c c c }
+  
+  Function & Correct & Incorrect & Imprecise & Total\\ 
+  \midrule
+  Plus & 5 & 0 & 11 & 16 \\
+  Minus & 5 & 0 & 11 & 16 \\
+  Times & 3 & 0 & 13 & 16 \\
+  Divide & 8 & 0 & 8 & 16 \\
+  Mod & 7 & 0 & 9 & 16 \\
+  Negate & 1 & 0 & 3 & 4 \\
+  \midrule
+  Total & 29 & 0 & 55 & 84 \\
+ \end{tabular}
+ \caption{Equivalent table to Table II, but for an
+ analysis that ``always goes to top''---meaning that every
+ transfer function loses all precision.}
+ \label{tab-top}
+\end{table}
+
+Because of these definitions of precision and recall, the
+precision and recall will always be the same: we are actually just counting how
+many entries in the transfer function matrix are identical. To further break
+down how precise the ``parity0'' analysis is, consider \tabref{parity0}, which breaks
+down each of the relevant transfer functions by the number of exactly correct
+entries, the number of incorrect entries (i.e. unsound entries), and the
+number of imprecise entries (i.e. entries that are sound but not as precise
+as they could be). \tabref{top} shows the same table for an analysis whose
+transfer functions are always top; this analysis is sound but not precise.
+The generated transfer function gets 10 more cases correct, but also gets
+three cases incorrect. That we are able to get several more cases correct,
+even though we introduce a bit of unsoundness, with just four test cases
+is encouraging. By adding more tests, we expect to improve these numbers.
+The tests used to generate the analysis are shown in the Appendix.
+
+The generated transfer functions also include transfer functions for
+boolean expresssions, which are all sound but not particularly precise,
+since they are mostly unconstrained. In addition, an abstraction function
+is synthesized; it is not correct, because it abstracts every integer but 1
+to be even. We are considering making the abstraction function an input to
+the tool.
+
+Our goal is to achieve a perfect match to the correct transfer function
+on at least the parity analysis.
 However, it will be interesting to see how many test cases are needed to
 reach that goal, which is why we include the weaker analyses we generate
 in the table. Since this is exploratory research, our primary goal here
@@ -492,6 +564,49 @@ them into practical analyses.
 % ACM needs 'a single self-contained file'!
 %
 \endgroup
+
+\appendix
+
+This appendix contains the test cases used to generate the ``parity0''
+analysis discussed in \secref{eval}. The test cases are very simple and
+were chosen for convenience.
+
+\begin{lstlisting}
+add_evens.imp:
+        x = @Both read_int();
+        @Even y = 2;
+        @Even z = 2 * x;
+        return @Even y + z;
+
+add_evens_loop.imp:
+        lc = read_int();
+        @Even y = 0;
+        while (0 < lc){
+            @Even y = y + (@Even 2);
+            lc = lc -1;
+        }
+        return y;
+
+if_merge.imp:
+        x = @Both read_int();
+        y = x;
+        if(x < 10) {
+            @Odd y = 1;
+        } else {
+            @Even y = 2;
+        }
+        return y;
+
+while_merge.imp:
+        x = @Both read_int();
+        y = x;
+        while(0 < x) {
+            x = x - @Odd 1;
+            @Even y = 2 * y;
+        }
+        return y;
+
+\end{lstlisting}
 
 \end{document}
 This is never printed
