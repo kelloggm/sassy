@@ -33,6 +33,8 @@ rgbel = []
 
 mplcn_lae = {}
 
+rglae = []
+
 for ln in fileinput.input():
     ln = ln.strip()
     if ln:
@@ -49,6 +51,9 @@ for ln in fileinput.input():
         elif ln.startswith(";Bottom: "):
             for bel in ln.split()[1].split(", "):
                 rgbel.append(bel)
+        elif ln.startswith(";Elts:~"):
+            for lae in ln.split("~")[1].split(" "):
+                rglae.append(lae)
         else:
             rgzdf.append(ln)
                 
@@ -69,21 +74,37 @@ for zdf in rgzdf:
 
 for utf in rgutf:
     print "(declare-fun abstract-" + utf + " (Elt) Elt)"
-    print "(assert (= (abstract-" + utf + " " + tel + ") " + tel + "))"
-    for bel in rgbel:
-        print "(assert (= (abstract-" + utf + " " + bel + ") " + bel + "))"
 
 for btf in rgbtf:
     print "(declare-fun abstract-" + btf + " (Elt Elt) Elt)"
-    print "(assert (= (abstract-" + btf + " " + tel + " " + tel + ") " + tel + "))"
-    for bel in rgbel:
-        print "(assert (= (abstract-" + btf + " " + bel + " " + bel + ") " + bel + "))"
 
 print "(declare-fun abstract-subtype (Elt Elt) Bool)"
 print "(declare-fun abstract-abstraction (Int) Elt)"
     
 for zas in rgzasFiltered:
     print zas
+    
+# generic constraints on unary transfer functions
+for utf in rgutf:
+    print "(assert (= (abstract-" + utf + " " + tel + ") " + tel + "))"
+    for bel in rgbel:
+        print "(assert (= (abstract-" + utf + " " + bel + ") " + bel + "))"
+    for lae in rglae:
+        print "(assert-soft (= (abstract-" + utf + " " + lae + ") " + tel + "))"
 
+# generic constraints on binary transfer functions
+for btf in rgbtf:
+    print "(assert (= (abstract-" + btf + " " + tel + " " + tel + ") " + tel + "))"
+    for bel in rgbel:
+        print "(assert (= (abstract-" + btf + " " + bel + " " + bel + ") " + bel + "))"
+    for lae1 in rglae:
+        for lae2 in rglae:
+            if lae1 in rgbel:
+                print "(assert-soft (= (abstract-" + btf + " " + lae1 + " " + lae2 + ") " + lae1 + "))"
+            elif lae2 in rgbel:
+                 print "(assert-soft (= (abstract-" + btf + " " + lae1 + " " + lae2 + ") " + lae2 + "))"
+            else:
+                print "(assert-soft (= (abstract-" + btf + " " + lae1 + " " + lae2 + ") " + tel + "))"
+    
 print "(check-sat)"
 print "(get-model)"

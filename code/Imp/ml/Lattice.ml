@@ -152,27 +152,12 @@ let lub elt1 elt2 =
     | (hd,_) :: tl -> hd
     | [] -> raise (Bad_Lub (mkstr "Unable to get a LUB of element %s and %s" (implode (get_element_name elt1)) (implode (get_element_name elt2))))
 
-let generate_assert elt1 elt2 =
-  mkstr "(assert (not (= %s %s)))" (implode (get_element_name elt1)) (implode (get_element_name elt2))
-          
-let generate_asserts'' elt rest_of_lattice =
-  List.map (generate_assert elt) rest_of_lattice
-          
-let rec generate_asserts' lattice acc =
-  match lattice with | [] -> acc
-                     | elt :: tl -> generate_asserts' tl
-                                                      ((generate_asserts'' elt tl) @
-                                                         acc)
-let generate_asserts lattice =
-  generate_asserts' lattice []
-          
-let generate_element_constraint elt =
-  mkstr "(declare-const %s Elt)" (implode (get_element_name elt))
-          
+let get_elts lattice =
+  String.concat " " (List.map (fun x -> (implode (get_element_name x))) lattice)
+  
 (* 
  * Generate the smt2 code to send to z3 that defines a lattice.
  * Returns a list of strings, each of which is a constraint.
  *)
 let generate_lattice_constraints lattice =
-  mkstr "(define-sort Elt () Int)\n;Top: %s\n;Bottom: %s" (implode (get_top lattice)) (get_bots lattice) :: (List.map generate_element_constraint lattice)
-  @ generate_asserts lattice
+  mkstr "(declare-datatypes () ((Elt %s)))\n;Top: %s\n;Bottom: %s\n;Elts:~%s" (get_elts lattice) (implode (get_top lattice)) (get_bots lattice) (get_elts lattice) :: []
