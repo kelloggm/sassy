@@ -105,6 +105,12 @@ for btf in rgbtf:
                  print "(assert-soft (= (abstract-" + btf + " " + lae1 + " " + lae2 + ") " + lae2 + "))"
             else:
                 print "(assert-soft (= (abstract-" + btf + " " + lae1 + " " + lae2 + ") " + tel + "))"
-    
+
+# constraints on commutivity of plus/times
+# should probably be guarded by a flag
+print "(assert (forall ((x Elt) (y Elt)) (= (abstract-plus x y) (abstract-plus y x))))"
+print "(assert (forall ((x Elt) (y Elt)) (= (abstract-times x y) (abstract-times y x))))"
+                
+                
 print "(check-sat)"
 print "(get-model)"
