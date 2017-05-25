@@ -1,0 +1,12 @@
+x = @Both read_int();
+@Odd y = 3;
+@Both z = x + y;
+@Both z2 = x - y;
+if(x % 2 == 0) {
+[x=@Even]
+@Even p = y * x;
+} else {
+[x=@Odd]
+     @Odd q = y * x;
+}
+return @Both y + z;
