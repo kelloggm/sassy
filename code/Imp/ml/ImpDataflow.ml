@@ -367,7 +367,42 @@ let constraint_gen_set alhs arhs =
      | AOp2 (_,_,_) -> mkstr "(assert (= %s %s))" (constraint_gen_abstr_type arhs) (implode (get_element_name alhsElt))
      end
   | _ -> mkstr ""
-  
+
+let find_name_of_expr expr =
+  match expr with
+        | Eval(v) -> explode (ImpPretty.expr_pretty expr)
+        | Evar(x) -> explode (ImpPretty.expr_pretty expr)
+        | _ -> explode "$invalid: unimplemented$3"
+
+let unwrap_expr_type etype =
+  match etype with
+  | Anno (elt) -> implode (get_element_name elt)
+  | Constant (c) -> implode c
+  | _ -> "$invalid: unimplemented$1"
+
+let emit_constraint_if op lhs_type rhs_type expr_type constraint_name =
+  mkstr "(assert (= (abstract-if-%s-%s %s %s) %s))" constraint_name (op2_constraint_name op) lhs_type rhs_type expr_type
+             
+let constraint_gen_if lattice cexpr tstmt fstmt astore =
+  match cexpr with
+  | Eop2 (op, lhs, rhs) -> begin
+      let then_store = anno_stmt_astore tstmt in
+      let else_store = anno_stmt_astore fstmt in
+      (* any of these types can be None *)
+      let lhs_then_type = unwrap_expr_type (get_expr_atype lattice lhs then_store) in
+      let lhs_else_type = unwrap_expr_type (get_expr_atype lattice lhs else_store) in
+      let rhs_then_type = unwrap_expr_type (get_expr_atype lattice rhs then_store) in
+      let rhs_else_type = unwrap_expr_type (get_expr_atype lattice rhs else_store) in
+      let lhs_type = unwrap_expr_type (get_expr_atype lattice lhs astore) in
+      let rhs_type = unwrap_expr_type (get_expr_atype lattice rhs astore) in
+      emit_constraint_if op lhs_type rhs_type lhs_then_type "then-store-lhs" ::
+      emit_constraint_if op lhs_type rhs_type lhs_else_type "else-store-lhs" ::
+      emit_constraint_if op lhs_type rhs_type rhs_then_type "then-store-rhs" ::
+      emit_constraint_if op lhs_type rhs_type rhs_else_type "else-store-rhs" ::
+          []
+    end
+  | _ -> mkstr "" :: []                      
+       
 let rec constraint_gen_stmt lattice anno_stmt =
   match anno_stmt with
      | AnnoStmt (stmt, astore) ->
@@ -391,6 +426,7 @@ let rec constraint_gen_stmt lattice anno_stmt =
         (constraint_gen_stmt lattice s1)
         @ (constraint_gen_stmt lattice s2)
     | Branch (condition_expr, true_stmt, false_stmt, astore) ->
+       constraint_gen_if lattice condition_expr true_stmt false_stmt astore @
        constraint_gen_stmt lattice true_stmt
        @ constraint_gen_stmt lattice false_stmt @ []
     | While (condition_expr, body_stmt, astore) ->

@@ -25,7 +25,7 @@ import fileinput
 rgzas = []
 rgzdf = []
 
-rgbtf = ["plus", "minus", "times", "divide", "mod", "eq", "lt", "lte", "and", "or"]
+rgbtf = ["plus", "minus", "times", "divide", "mod", "eq", "lt", "lte", "and", "or", "if-then-store-lhs-eq", "if-else-store-lhs-eq", "if-then-store-lhs-lt", "if-else-store-lhs-lt", "if-then-store-lhs-lte", "if-else-store-lhs-lte", "if-then-store-rhs-eq", "if-else-store-rhs-eq", "if-then-store-rhs-lt", "if-else-store-rhs-lt", "if-then-store-rhs-lte", "if-else-store-rhs-lte"]
 rgutf = ["negate", "not"]
 
 tel = ""
@@ -38,7 +38,9 @@ rglae = []
 for ln in fileinput.input():
     ln = ln.strip()
     if ln:
-        if ln.startswith("(assert"):
+        if "$invalid: unimplemented$" in ln:
+            pass
+        elif ln.startswith("(assert"):
             if "abstract-abstraction" in ln:
                 rgst = ln.split()
                 lcn = rgst[3].replace(")", "")
@@ -61,7 +63,7 @@ rgzasFiltered = []
         
 for zas in rgzas:
     for lcn in mplcn_lae.keys():
-        if " " + lcn in zas and not "abstract-abstraction" in zas:
+        if (" " + lcn + ")" in zas or " " + lcn + " " in zas) and not "abstract-abstraction" in zas:
             zas = zas.replace(lcn, mplcn_lae[lcn])
 
     if zas not in rgzasFiltered:
