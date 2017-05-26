@@ -1,0 +1,4 @@
+@Odd x = 1;
+@Odd y = 1;
+@Even z = x + y;
+return 3;

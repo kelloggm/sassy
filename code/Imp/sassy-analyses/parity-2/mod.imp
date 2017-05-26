@@ -1,0 +1,5 @@
+@Odd x = 3;
+@Even y = 2;
+@Even z = x % y;
+@Even w = y % z;
+return 0;
