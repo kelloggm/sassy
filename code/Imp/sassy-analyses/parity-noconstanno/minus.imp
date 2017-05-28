@@ -1,0 +1,7 @@
+x = 6;
+y = 4;
+@Even z = x - y;
+q = 3;
+r = 1;
+@Even s = q - r;
+return 0;

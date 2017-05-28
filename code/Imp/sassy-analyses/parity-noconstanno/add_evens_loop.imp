@@ -1,0 +1,7 @@
+lc = read_int();
+y = 0;
+while (0 < lc){
+    @Even y = y + 2;
+    lc = lc -1;
+}
+return y;

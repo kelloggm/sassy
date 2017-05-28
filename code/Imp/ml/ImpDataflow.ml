@@ -4,23 +4,19 @@ open ImpCommon
 open ImpPretty
 open Lattice
 
-(* TODO--make this work with lattices*)
-
 (* An abstract type is either an annotation,
 or a basic op on an annotation.
 This should be simplified later.
-It can also be a constant; this is
-used to generate constraints for the
+This is used to generate constraints for the
 abstraction function. *)
 type abstr_type = 
     | Anno of lattice_elt
     | AOp1 of op1 * abstr_type
     | AOp2 of op2 * abstr_type * abstr_type
     | NoAnno
-    | Constant of char list
 
 let get_anno lattice anno =
-    Anno (get_element lattice anno)
+    Anno (get_element (Lattice.get_lattice lattice) anno)
 
 let var_to_astore lattice = function
     | Var v -> (v, NoAnno)
@@ -63,7 +59,6 @@ let rec set_atype_lub lattice var anno astore =
         match anno with
         | Anno a1 -> (match oanno with 
                         | Anno a2 -> Anno (Lattice.lub a1 a2)
-                        | Constant c -> anno (* Unclear how to do LUB here.*)
                         | AOp1 (op, a) -> anno (* Unclear how to do LUB here.*)
                         | AOp2 (op, a1, a2) -> anno (* Unclear how/if we want to do LUB here.*)
                         | NoAnno -> anno)
@@ -144,7 +139,7 @@ stuff on the heap.
 *)
 let rec get_expr_atype lattice expr astore =
     match expr with
-    | Eval v -> Constant (explode (ImpPretty.expr_pretty expr)) (*TODO--This should use the abstraction function...*)
+    | Eval v -> Anno ((Lattice.get_abstraction_function lattice) v)
     | Evar var -> (match (get_atype var astore) with 
                  | None -> NoAnno (*TODO--This is use of a variable we haven't seen before*)
                  | Some a -> a)
@@ -238,7 +233,6 @@ let dataflow_prog lattice = function
 
 let rec pretty_anno = function
     | Anno a -> (implode (get_element_name a))
-    | Constant c -> implode c
     | AOp1 (op1, a1) ->
         mkstr "(%s %s)"
         (ImpPretty.op1_pretty op1) 
@@ -352,7 +346,6 @@ let rec constraint_gen_abstr_type atype =
   match atype with
   | NoAnno -> mkstr "" (* is this the right thing to do? *)
   | Anno (elt) -> implode (get_element_name elt)
-  | Constant (c) -> implode c
   | AOp1 (op, atypeInner) -> mkstr "(abstract-%s %s)" (op1_constraint_name op) (constraint_gen_abstr_type atypeInner)
   | AOp2 (op, atypeL, atypeR) -> mkstr "(abstract-%s %s %s)" (op2_constraint_name op) (constraint_gen_abstr_type atypeL) (constraint_gen_abstr_type atypeR)
   
@@ -361,7 +354,6 @@ let constraint_gen_set alhs arhs =
   | Anno (alhsElt) ->
      begin match arhs with
      | NoAnno -> mkstr ""
-     | Constant (arhsConst) -> mkstr "(assert (= (abstract-abstraction %s) %s))" (implode arhsConst) (implode (get_element_name alhsElt))
      | Anno (arhsElt) -> mkstr "(assert (= (abstract-subtype %s %s) true))" (implode (get_element_name arhsElt)) (implode (get_element_name alhsElt))
      | AOp1 (_,_) -> mkstr "(assert (= %s %s))" (constraint_gen_abstr_type arhs) (implode (get_element_name alhsElt))
      | AOp2 (_,_,_) -> mkstr "(assert (= %s %s))" (constraint_gen_abstr_type arhs) (implode (get_element_name alhsElt))
@@ -377,7 +369,6 @@ let find_name_of_expr expr =
 let unwrap_expr_type etype =
   match etype with
   | Anno (elt) -> implode (get_element_name elt)
-  | Constant (c) -> implode c
   | _ -> "$invalid: unimplemented$1"
 
 let emit_constraint_if op lhs_type rhs_type expr_type constraint_name =
@@ -402,7 +393,7 @@ let constraint_gen_if lattice cexpr tstmt fstmt astore =
           []
     end
   | _ -> mkstr "" :: []                      
-       
+
 let rec constraint_gen_stmt lattice anno_stmt =
   match anno_stmt with
      | AnnoStmt (stmt, astore) ->
@@ -457,5 +448,3 @@ let constraint_gen_prog' lattice = function
   
 let constraint_gen_prog lattice p =
   String.concat "\n" (constraint_gen_prog' lattice p)
-
- 

@@ -1,0 +1,11 @@
+x = 2;
+y = 3;
+@Odd z = x + y;
+@Odd w = x - y;
+@Odd q = y - x;
+@Odd r = y * y;
+@Even s = -y;
+@Odd t = -x;
+@Both inp = read_int();
+@Both q = y * inp;
+return q;

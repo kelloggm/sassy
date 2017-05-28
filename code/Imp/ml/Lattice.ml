@@ -1,10 +1,9 @@
 open ZUtil
-
+open ImpSyntax
 
 (* Lattice element is an annotation and parents...*)
 type lattice_elt =
     | Element of char list * lattice_elt list
-
 
 type lattice = lattice_elt list
 
@@ -161,3 +160,15 @@ let get_elts lattice =
  *)
 let generate_lattice_constraints lattice =
   mkstr "(declare-datatypes () ((Elt %s)))\n;Top: %s\n;Bottom: %s\n;Elts:~%s" (get_elts lattice) (implode (get_top lattice)) (get_bots lattice) (get_elts lattice) :: []
+
+(* Abstract interpretation is a lattice and an abstraction function *)
+type abstract_interpretation =
+    lattice * (coq_val -> lattice_elt)
+
+let get_lattice abstr_interp = 
+    match abstr_interp with
+    | (lat, abstr) -> lat
+
+let get_abstraction_function abstr_interp =
+    match abstr_interp with
+    | (lat, abstr) -> abstr
