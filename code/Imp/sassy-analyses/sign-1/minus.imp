@@ -1,0 +1,7 @@
+x = 6;
+y = 4;
+@Top z = x - y;
+q = 3;
+r = 1;
+@Top s = q - r;
+return 0;
