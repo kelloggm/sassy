@@ -20,6 +20,8 @@
 
 \maketitle
 
+\lstset{language=C}
+
 \begin{abstract}
 
 Constructing static analyses requires a great deal of
@@ -174,31 +176,29 @@ such as a program with some expressions missing.
 \section{Technical Approach}
 \label{sec-tech}
 
-\begin{figure}
- \includegraphics[width=\linewidth]{arch.png}
- \caption{The proposed architecture for the tool.
-   Examples are translated to contraints and a sketch of the transfer function is built.
-   These are passed to a solver, and then the resulting transfer function is translated into
- a practical analysis.}
-\label{fig-arch}
-\end{figure} 
+This section focuses on the part of the proposed tool that generates
+constraints from examples and passes them to an SMT solver. These are
+the pieces of the proposed solution that we implemented for this course
+project.
 
-Our proposed approach involves three steps.
-First, translate examples of the static analysis on sample programs
-(provided by the programmer)
-into constraints on the transfer function and create
-a sketch of the transfer functions for the target language.
-Constraints are generated from annotated
-code examples by traversing the abstract syntax tree of the
-program.
-Second, pass those constraints and the sketch to the solver;
-the result of that solver call is a filled-in transfer
-function. Finally, translate the produced transfer function
-into an actual analysis that can be run by a programmer.
-A diagram of this architecture is shown in \figref{arch}.
+\subsection{Input: lattice and examples}
+\label{sec-input}
 
-The lattice for the abstract analysis is provided by
-the programmer, since it must be known to write the examples.
+The programmer provides three things: a lattice,
+an abstraction function, and a set of example programs.
+
+The lattice for the abstract analysis must be provided.
+The lattice includes both the abstract domains and a least
+upper bound relationship between them. Our tool currently
+requires these to be specified in source code, but future
+work would include a simple parser that reads this information
+from a configuration file. The abstraction function is provided
+in a similar manner, and would be similarly provided in a configuration
+file in future work. It relates constants to lattice elements.
+For instance, the abstraction function for the parity analysis
+in \secref{ai} relates all even integers to the \lstinline{@Even}
+lattice element.
+
 The examples are code snippets annotated with the
 abstract domains (in the same way typed languages have type annotations).
 Consider the example below, which is a sample example that a
@@ -211,39 +211,94 @@ used as an example in \secref{ai}:
 @Even z = x + y;
 \end{lstlisting}
 
-The programmer must have already provided the names of the annotations
-to the tool as part of the lattice.
-Then, when this example is processed, the tool generates
-the following \lstinline{smt2}~\cite{smt2} constraints:
+\subsection{The sketch}
+\label{sec-sketch}
 
-\begin{lstlisting}
-(assert (= (abstract-abstraction 2) @Even))
-(assert (= (abstract-abstraction 4) @Even))
+Our tool provides a sketch of the transfer function. Most of the
+sketch is dedicated to declaring the transfer functions for various
+operators. For instance, the code below is the \lstinline{smt2}~\cite{smt2}
+code that our tool generates for the plus operator when preparing
+a sketch for the parity analysis in \secref{ai} (\lstinline{Elt} is
+a special type that can only be inhabited by a lattice element):
+
+\lstset{language=[]Lisp}
+\lstset{morekeywords={assert-soft, declare-fun}}
+\begin{lstlisting}[columns=fullflexible]
+(declare-fun abstract-plus (Elt Elt) Elt)
+(assert-soft (= (abstract-plus @Both @Both) @Both))
+(assert-soft (= (abstract-plus @Both @Bottom) @Bottom))
+...
+\end{lstlisting}
+\lstset{language=C}
+
+The first line declares the function \lstinline{abstract-plus}, which
+is the transfer function for plus. The second and third lines are
+\textit{soft constraints}~\cite{bjorner2015nuz},
+each of which biases the solver towards returning the top lattice
+element for any transfer not involving the bottom element, and the
+bottom element for transfers that do involve the bottom element.
+There is a soft constraint for each pair of lattice elements; our
+example omits all but two.  These constraints are not required to be
+satisfied, but the solver prefers solutions in which they are
+satisfied to solutions in which they are not.  Though adding soft
+constraints does convert the problem from a standard satisfiablity
+problem to an optimization problem, because the number of these
+constraints introduced is proportional to the size of the sketch, the
+impact of these constraints on performance is not problematic---no
+matter how large the input, the number of soft constraints generated
+is constant.  As a result of the soft constraints, the produced
+transfer function will always be sound in underspecified cases; they
+have the effect of introducing a default behavior that corresponds
+with typical analyses.
+
+\subsection{Generating constraints}
+\label{sec-cgen}
+
+To generate contraints from the code sample in \secref{input},
+our tool
+performs a straightforward dataflow analysis. The analysis
+maintains an abstract store and propagates the annotations
+through the program using standard dataflow rules (so, for
+instance, \lstinline{x} in the example above still has
+a \lstinline{@Even} annotation on the third line).
+As it analyzes the code, the tool generates
+constraints when it encounters a statement that
+can be used to constrain a transfer function, like
+the third line above (which constrains the transfer function
+for plus). The tool generates
+the following \lstinline{smt2}~\cite{smt2} constraint:
+
+\lstset{language=[]Lisp}
+\begin{lstlisting}[columns=fullflexible]
 (assert (= (abstract-plus @Even @Even) @Even))
 \end{lstlisting}
+\lstset{language=C}
 
-Each of these constraints corresponds to one of the statements in the
-simple imperative program above. \lstinline{abstract-abstraction}
-and \lstinline{abstract-plus} are defined in the sketch and define,
-respectively, the abstraction function (i.e. the transfer function
-for constants) and the transfer function for the plus operator.
-The first two constraints indicate that both 2 and 4 are members of
-the ``Even'' abstract domain. The last constraint indicates that
-adding two even numbers produces another even number. Solving these
-constraints results in a series of function definitions, which together
-make up the transfer function. It is possible that the programmer's
-examples might not completely specify the analysis. We believe that in
-practice this will be solvable by observing the warnings produced by
-the synthesized analysis and adding more test cases. However, ambiguity
-can also be addressed at the tool level: once the solver returns a
-candidate transfer function, a new solver call can be made that asks
-the solver for another transfer function with the same properties (i.e.
-that is still consistent with the examples) but which is \emph{not} the
-transfer function it returned previously. If the result is unsatisfiable,
-then we can conclusively say that there is no ambiguity; if not, one
-can imagine a user-interface that asks the developer for help in
-resolving the ambiguity by providing an example that disambiguates the
-place that the two produced transfer functions differ.
+This constraint corresponds to the final statement in the
+simple imperative program above.
+It is a \textit{hard constraint}---that is, it must be satisfied
+by the solver.
+\lstinline{abstract-plus} is defined in the sketch (\secref{sketch}) and defines
+the transfer function for the plus operator.
+The constraint indicates that
+adding two even numbers produces another even number. Solving a series of
+constraints like these
+results in a series of function definitions, which together
+make up the transfer function.
+
+It is possible that the programmer's
+examples might not completely specify the analysis. Sometimes
+ambiguity is caused because there is important behavior that the
+examples do not cover (for instance, if there is no test case where
+two odd numbers are added, no constraint will be generated for that
+case and the analysis will not learn that the result should be even).
+This case has to be solved by the programmer, by adding more test cases.
+However, a goal of our technique is to avoid the programmer exhaustively
+specifying all interactions between the lattice elements---we want the
+programmer to only need to specify what is important. The soft constraints
+that we introduced in \secref{sketch} are partly motivated by this problem;
+because of the soft constraints, any ambiguity in the input will not
+introduce unsoundness.
 
 This produced transfer function, along with the known lattice,
 contains enough information to mechanically create the practical
@@ -265,55 +320,21 @@ cases a conscientious analysis developer would want to write.
 
 \section{Implementation}
 
-We propose to target the IMP programming language~\footnote{https://www.seas.upenn.edu/~cis500/current/sf/Imp.html}
-during this course project, with the idea that we would be able to re-use the internals
-(i.e. the code that calls the solver) if the project is successful in
-a version of the tool that targetted a more practical language like Java.
-We are choosing to use IMP because it's simple and we can avoid worrying
+Our implementation targets the IMP programming language~\footnote{https://www.seas.upenn.edu/~cis500/current/sf/Imp.html}.
+We chose to use IMP because it is simple and we can avoid worrying
 about the more complex details of a practical language. We are more interested
 in determining whether it is possible to derive static analyses automatically
 from examples at all, rather than building a production-quality tool.
 We will use z3~\cite{z3} as our solver, and transform the IMP programs directly
-into smt2 constraints using a modified IMP interpreter.
+into smt2 constraints using a dataflow framework for IMP.
 We will not
 implement the last stage of our proposed approach, but rather stop with a
 synthesized transfer function (there is also little practical value in building
 a backend for IMP).
 
-\subsection{Expected Challenges}
+\subsection{Remaining Challenges}
 
-We anticipate that it will be difficult to produce constraints that allow
-the solver to find a reasonable transfer. First, there is a danger that
-the constraints will be too general, and that the produced transfer
-function will be ambiguous. For that reason, we want to investigate
-how many test cases we need to specify the correct transfer function
-for several analyses (see the next section). This is the most important
-concern that we have about this approach now. There is also a danger
-that the produced transfer functions will overfit to the examples,
-though. Consider the parity example in \secref{tech}. What if the solver
-learns that 2 and 4 are members of the ``Even'' abstract domain, but
-does not learn the more general rule for even numbers? Finding the
-appropriate balance between asking the programmer for help (for instance,
-we could ask the programmer to provide the abstraction function for
-constants directly) and automatically inferring transfer functions
-is our most pressing concern.
-
-Related, we are also concerned that due to ambiguity in the provided
-examples, the solver may produce an unsound transfer function.
-As a pathological example, consider a transfer function where
-everything goes to bottom. We would like to bias the solver
-so that when it encounters ambiguity, it prefers a solution
-closer to top. We mentioned in \secref{tech} that a possible solution
-to the ambiguity issue is to iteratively call the solver, asking for
-a different solution. We could then order the transfer functions
-by how close they are to top (i.e. if one transfer function sends something
-to bottom, but another sends it to top, select the one that sends it to top).
-This is a inelegant solution that may make the
-time required to run the tool infeasible, however, because
-many solver calls could be required.
-As part of our investigation, we will try to
-determine if this actually is a problem when writing practical
-analyses (or do a reasonable set of test cases prevent this?).
+The largest remaining open problem that we 
 
 \section{Evaluation}
 \label{sec-eval}
