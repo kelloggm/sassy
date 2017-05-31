@@ -15,6 +15,7 @@
 \usepackage{booktabs}
 \usepackage{url}
 \usepackage{listings}
+\usepackage{color}
 
 \begin{document}
 
@@ -395,7 +396,7 @@ The set of test cases is completely arbitrary,
 and our goal is to show that creating these analyses automatically
 is \emph{possible}; we leave an evaluation of the usability of the
 tool until the tool operates on a language that programmers might
-actually write code in.
+actually write code in (see \secref{fw}).
 
 \begin{table}
 \centering
@@ -403,7 +404,7 @@ actually write code in.
   Analysis & Test Cases & \% Expr. Correct \\ 
   \midrule
   Parity-GTT & - & 35\% \\
-  Parity-0 & 4 & ?\% \\
+  Parity-0 & 4 & 83\% \\
   Parity-1 & 9 & 100\% \\
   \midrule
   Signedness-GTT & - & ?\% \\
@@ -425,21 +426,21 @@ actually write code in.
   
   Function & Correct & Incorrect & Imprecise & Total\\ 
   \midrule
-  Plus & 7 & 0 & 9 & 16 \\
-  Minus & 6 & 0 & 10 & 16 \\
-  Times & 7 & 3 & 6 & 16 \\
-  Divide & 9 & 0 & 7 & 16 \\
-  Mod & 8 & 0 & 8 & 16 \\
+  Plus & 13 & 0 & 3 & 16 \\
+  Minus & 12 & 0 & 4 & 16 \\
+  Times & 13 & 0 & 3 & 16 \\
+  Divide & 16 & 0 & 0 & 16 \\
+  Mod & 14 & 0 & 2 & 16 \\
   Negate & 2 & 0 & 2 & 4 \\
   \midrule
-  Total & 39 & 3 & 42 & 84 \\
+  Total & 70 & 0 & 14 & 84 \\
  \end{tabular}
  \caption{Breakdown of the results of synthesizing transfer functions
  for a parity analysis from just four simple test cases. Correct is number
  of entries in the matrix that match the ground truth transfer function
  exactly; Incorrect is the number that do not match and are unsound;
  Imprecise is the number that do not match, but are still sound. The
- precision/recall in Table I can be calculated by dividing
+ percentage shown in Table I can be calculated by dividing
  the Correct column by the Total column.}
  \label{tab-parity0}
 \end{table}
@@ -465,37 +466,24 @@ actually write code in.
  \label{tab-top}
 \end{table}
 
-Because of these definitions of precision and recall, the
-precision and recall will always be the same: we are actually just counting how
-many entries in the transfer function matrix are identical. To further break
-down how precise the ``parity0'' analysis is, consider \tabref{parity0}, which breaks
+To further break
+down how precise the ``parity-0'' analysis is, consider \tabref{parity0}, which breaks
 down each of the relevant transfer functions by the number of exactly correct
-entries, the number of incorrect entries (i.e. unsound entries), and the
+entries, the number of incorrect entries (i.e. unsound entries; previous
+versions of our tool produced these but the current version does not), and the
 number of imprecise entries (i.e. entries that are sound but not as precise
 as they could be). \tabref{top} shows the same table for an analysis whose
 transfer functions are always top; this analysis is sound but not precise.
-The generated transfer function gets 10 more cases correct, but also gets
-three cases incorrect. That we are able to get several more cases correct,
-even though we introduce a bit of unsoundness, with just four test cases
-is encouraging. By adding more tests, we expect to improve these numbers.
-The tests used to generate the analysis are shown in the Appendix.
+The generated transfer function gets many more cases correct.
+That we are able to get so many more cases correct
+without introducing unsoundness, with just four test cases
+is encouraging. By adding just a few more tests (like our ``parity-1''
+analysis does) it is possible to reach a perfect match for the correct
+transfer function at the expression level. None of the parity analyses
+have any interesting behavior with respect to dataflow; they instead
+just go to top.
 
-The generated transfer functions also include transfer functions for
-boolean expresssions, which are all sound but not particularly precise,
-since they are mostly unconstrained. In addition, an abstraction function
-is synthesized; it is not correct, because it abstracts every integer but 1
-to be even. We are considering making the abstraction function an input to
-the tool.
-
-Our goal is to achieve a perfect match to the correct transfer function
-on at least the parity analysis.
-Determining how to reach that goal---how many test cases are required, how
-we can bias the solver away from incorrect results---will be our goals
-for the remainder of the project.
-Since this is exploratory research, our primary goal here
-is to just show that this is possible, not to demonstrate that our tool
-is superior to the state of the art in any way. That will come later;
-see \secref{fw}.
+\textcolor{red}{FIXME include results of signedness analyses here!}
 
 \section{Related Work}
 
