@@ -1,0 +1,46 @@
+x = @Top read_int();
+y = 0;
+z = 0;
+if (x < 0){
+    [x=@Negative]
+    @Zero z = x*z;
+    @Negative y = y+x;
+    @Positive m = -x;
+} else {
+    [x=@PosOrZero]
+    if (0 < x){
+        [x=@Positive]
+        @Positive y = x+y;
+        @Zero z = x*z;
+        @Negative m = -x;
+    } else {
+        [x=@Zero]
+        @Zero y = y+x;
+        @Zero z = x*z;
+        @Zero m = -x;
+    }
+}
+p = @Top read_int;
+q = 0;
+r = 0;
+if (x <= 0){
+    [x=@NegOrZero]
+    if(x == 0){
+        [x=@Zero]
+        @Zero s = x-q;
+        @Zero t = x % 5;
+        @Zero v = x / 10;
+    } else {
+        [x=@Negative]
+        @Positive s = 0 - x;
+        @PosOrZero t = x % 10;
+        @NegOrZero v = x / 10;
+    }
+} else {
+    [x=@Positive]
+    @Negative s = 0 - x;
+    @PosOrZero t = x % 10;
+    @PosOrZero t = x / 10;
+}
+
+return y;

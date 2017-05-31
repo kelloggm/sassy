@@ -1,0 +1,74 @@
+@Top inp1 = read_int();
+@Top inp2 = read_int();
+neg=-1;
+zero=0;
+pos=1;
+if(0 < inp1)
+{
+    [inp1=@Positive]
+    @Top m = inp1 + neg;
+    @Positive n = inp1 + zero;
+    @Positive o = inp1 + pos;
+} 
+else 
+{
+    [inp1=@NegOrZero]
+    if(0 <= inp2){
+        [inp2=@PosOrZero]
+        @Negative m = inp1 + neg;
+        @NegOrZero n = inp1 + zero;
+        @Top o = inp1 + pos;
+        @Top p = inp1 + inp2;
+        @NegOrZero q = inp1 - inp2;
+        @NegOrZero r = inp1 / inp2;
+        @PosOrZero s = inp1 % inp2;
+        @PosOrZero t = inp2 - inp1;
+        @NegOrZero u = inp2 / inp1;
+        @PosOrZero v = inp2 % inp1;
+    } else {
+        [inp2=@Negative]
+        @Negative m = inp1 + neg;
+        @NegOrZero n = inp1 + zero;
+        @Top o = inp1 + pos;
+        @Negative p = inp1 + inp2;
+        @Top q = inp1 - inp2;
+        @PosOrZero r = inp1 / inp2;
+        @PosOrZero s = inp1 % inp2;
+        @Top t = inp2 - inp1;
+        @PosOrZero u = inp2 / inp1;
+        @PosOrZero v = inp2 % inp1;
+    }
+}
+
+if(inp1 < 0){
+    [inp1=@Negative]
+    @Negative m = inp1 + neg;
+    @Negative n = inp1 + zero;
+    @Top o = inp1 + pos;
+} else {
+    [inp1=@PosOrZero]
+    if(inp2 <= 0){
+        [inp2=@NegOrZero]
+        @Top m = inp1 + neg;
+        @PosOrZero n = inp1 + zero;
+        @Positive o = inp1 + pos;
+        @Top p = inp1 + inp2;
+        @PosOrZero q = inp1 - inp2;
+        @NegOrZero r = inp1 / inp2;
+        @PosOrZero s = inp1 % inp2;
+        @NegOrZero t = inp2 - inp1;
+        @NegOrZero u = inp2 / inp1;
+        @PosOrZero v = inp2 % inp1;
+    } else {
+        [inp2=@Positive]
+        @Positive p = inp1 + inp2;
+        @Top q = inp1 - inp2;
+        @PosOrZero r = inp1 / inp2;
+        @PosOrZero s = inp1 % inp2;
+        @Top t = inp2 - inp1;
+        @PosOrZero u = inp2 / inp1;
+        @PosOrZero v = inp2 % inp1;
+    }
+}
+
+return inp1+inp2;

@@ -1,0 +1,8 @@
+@Both x = read_int();
+if (x == 0) {
+[x=@Even]
+@Even y = x + 2;
+} else {
+@Odd z = 3;
+}
+return x;

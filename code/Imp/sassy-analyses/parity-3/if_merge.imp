@@ -1,0 +1,8 @@
+x = @Both read_int();
+y = x;
+if(x < 1) {
+    @Odd y = 1;
+} else {
+    @Even y = 2;
+}
+return y;

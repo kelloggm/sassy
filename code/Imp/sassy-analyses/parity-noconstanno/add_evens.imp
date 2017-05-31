@@ -1,0 +1,4 @@
+x = @Both read_int();
+y = 2;
+@Even z = 2 * x;
+return @Even y + z;

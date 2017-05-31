@@ -4,11 +4,11 @@ open ImpCommon
 open ImpPretty
 open Lattice
 
-(* TODO--make this work with lattices*)
-
 (* An abstract type is either an annotation,
 or a basic op on an annotation.
-This should be simplified later. *)
+This should be simplified later.
+This is used to generate constraints for the
+abstraction function. *)
 type abstr_type = 
     | Anno of lattice_elt
     | AOp1 of op1 * abstr_type
@@ -16,7 +16,7 @@ type abstr_type =
     | NoAnno
 
 let get_anno lattice anno =
-    Anno (get_element lattice anno)
+    Anno (get_element (Lattice.get_lattice lattice) anno)
 
 let var_to_astore lattice = function
     | Var v -> (v, NoAnno)
@@ -132,6 +132,20 @@ type anno_prog =
 (* Function environments look like abstract environments *)
 type function_environment = (char list * abstr_type) list
 
+(* 
+We do a little bit with negation to handle unary operations on constants "correctly"
+(i.e. it's confusing that negative constants are actually constrained as "abst-neg pos-const-abstr-val")
+*)
+let neg a =
+    match a with 
+    | Vint v -> Vint (Big_int.minus_big_int v)
+    | _ -> a
+
+let not a =
+    match a with 
+    | Vbool v -> if v then Vbool false else Vbool true
+    | _ -> a
+
 (* Dataflow for expressions.
 TODO:  Currently doesn't do anything to handle several 
 built in 'expressions', and makes no attempt to handle 
@@ -139,11 +153,17 @@ stuff on the heap.
 *)
 let rec get_expr_atype lattice expr astore =
     match expr with
-    | Eval v -> NoAnno (*TODO--This should use the abstraction function...*)
+    | Eval v -> Anno ((Lattice.get_abstraction_function lattice) v)
     | Evar var -> (match (get_atype var astore) with 
                  | None -> NoAnno (*TODO--This is use of a variable we haven't seen before*)
                  | Some a -> a)
-    | Eop1 (op1, e1) -> AOp1 (op1, (get_expr_atype lattice e1 astore)) (* TODO -- this is kind of a hack...*)
+    | Eop1 (op1, e1) -> 
+        (match e1 with
+        | Eval v -> (match op1 with
+                    | Oneg -> Anno ((Lattice.get_abstraction_function lattice) (neg v))
+                    | Onot -> Anno ((Lattice.get_abstraction_function lattice) (not v)))
+        | _ -> AOp1 (op1, (get_expr_atype lattice e1 astore)) (* TODO -- this is kind of a hack...*)
+        ) 
     | Eop2 (op2, e1, e2) -> AOp2 (op2, (get_expr_atype lattice e1 astore), (get_expr_atype lattice e2 astore))
     | Elen expr -> NoAnno (*TODO--Length expression takes an array and returns its length*)
     | Eidx (e1, e2) -> NoAnno (*TODO--Index expression gets a value from the heap.*)
@@ -301,4 +321,150 @@ let pretty_dataflow_prog' = function
     :: []
 
 let pretty_dataflow_prog p = 
-    String.concat "\n" (pretty_dataflow_prog' p)
+  String.concat "\n" (pretty_dataflow_prog' p)
+
+
+(* constraint generation *)
+
+(* 
+ * unwraps a pair of options and passes them to f 
+ * if either is None, returns the empty string
+ * otherwise, returns the result of calling f 
+ *
+let unwrap f opt1 opt2 =
+  match opt1 with
+  | Some x ->
+     begin match opt2 with
+     | Some y -> f x y
+     | None -> ""
+     end
+  | None -> ""*)
+
+(* 
+   AOp1 and AOp2 contain an operation and two abstract types, not annotations.
+   So we need another layer of recursion here: constraint_gen_set needs to
+   call something that produces lisp-y code for their subterms.
+ *)
+
+let op1_constraint_name = function
+  | Oneg -> "negate"
+  | Onot -> "not"
+
+let op2_constraint_name = function
+  | Oadd -> "plus"
+  | Osub -> "minus"
+  | Omul -> "times"
+  | Odiv -> "divide"
+  | Omod -> "mod"
+  | Oeq -> "eq"
+  | Olt -> "lt"
+  | Ole -> "lte"
+  | Oconj -> "and"
+  | Odisj -> "or"
+
+let rec constraint_gen_abstr_type atype =
+  match atype with
+  | NoAnno -> mkstr "" (* is this the right thing to do? *)
+  | Anno (elt) -> implode (get_element_name elt)
+  | AOp1 (op, atypeInner) -> mkstr "(abstract-%s %s)" (op1_constraint_name op) (constraint_gen_abstr_type atypeInner)
+  | AOp2 (op, atypeL, atypeR) -> mkstr "(abstract-%s %s %s)" (op2_constraint_name op) (constraint_gen_abstr_type atypeL) (constraint_gen_abstr_type atypeR)
+  
+let constraint_gen_set alhs arhs =
+  match alhs with
+  | Anno (alhsElt) ->
+     begin match arhs with
+     | NoAnno -> mkstr ""
+     | Anno (arhsElt) -> mkstr "(assert (= (abstract-subtype %s %s) true))" (implode (get_element_name arhsElt)) (implode (get_element_name alhsElt))
+     | AOp1 (_,_) -> mkstr "(assert (= %s %s))" (constraint_gen_abstr_type arhs) (implode (get_element_name alhsElt))
+     | AOp2 (_,_,_) -> mkstr "(assert (= %s %s))" (constraint_gen_abstr_type arhs) (implode (get_element_name alhsElt))
+     end
+  | _ -> mkstr ""
+
+let find_name_of_expr expr =
+  match expr with
+        | Eval(v) -> explode (ImpPretty.expr_pretty expr)
+        | Evar(x) -> explode (ImpPretty.expr_pretty expr)
+        | _ -> explode "$invalid: unimplemented$3"
+
+let unwrap_expr_type etype =
+  match etype with
+  | Anno (elt) -> implode (get_element_name elt)
+  | _ -> "$invalid: unimplemented$1"
+
+let emit_constraint_if op lhs_type rhs_type expr_type constraint_name =
+  mkstr "(assert (= (abstract-if-%s-%s %s %s) %s))" constraint_name (op2_constraint_name op) lhs_type rhs_type expr_type
+             
+let constraint_gen_if lattice cexpr tstmt fstmt astore =
+  match cexpr with
+  | Eop2 (op, lhs, rhs) -> begin
+      let then_store = anno_stmt_astore tstmt in
+      let else_store = anno_stmt_astore fstmt in
+      (* any of these types can be None *)
+      let lhs_then_type = unwrap_expr_type (get_expr_atype lattice lhs then_store) in
+      let lhs_else_type = unwrap_expr_type (get_expr_atype lattice lhs else_store) in
+      let rhs_then_type = unwrap_expr_type (get_expr_atype lattice rhs then_store) in
+      let rhs_else_type = unwrap_expr_type (get_expr_atype lattice rhs else_store) in
+      let lhs_type = unwrap_expr_type (get_expr_atype lattice lhs astore) in
+      let rhs_type = unwrap_expr_type (get_expr_atype lattice rhs astore) in
+      emit_constraint_if op lhs_type rhs_type lhs_then_type "then-store-lhs" ::
+      emit_constraint_if op lhs_type rhs_type lhs_else_type "else-store-lhs" ::
+      emit_constraint_if op lhs_type rhs_type rhs_then_type "then-store-rhs" ::
+      emit_constraint_if op lhs_type rhs_type rhs_else_type "else-store-rhs" ::
+          []
+    end
+  | _ -> mkstr "" :: []                      
+
+let rec constraint_gen_stmt lattice anno_stmt =
+  match anno_stmt with
+     | AnnoStmt (stmt, astore) ->
+        begin match stmt with
+         | Sset(x, e) ->
+            let annoXOption = match x with
+              | Var (name) -> get_atype name astore
+              | AnnoVar (a, name) -> get_atype name astore in
+            begin match annoXOption with
+              | Some (annoX) ->  constraint_gen_set annoX (get_expr_atype lattice e astore)
+              | None -> mkstr "lhs unannotated. This situation is unimplemented."
+            end
+         | Scall(x, f, es) ->
+         (* Do nothing? It looks like we're already handling this correctly. *)
+            mkstr ""
+         | _ ->
+            mkstr "stmt unimplemented: %s" (String.concat "\n" (List.map Bytes.to_string (pretty_anno_stmt anno_stmt)))
+        end
+        :: [] (* <- note that all the strings above are being turned into lists! *)
+    | Seq (s1, s2) -> 
+        (constraint_gen_stmt lattice s1)
+        @ (constraint_gen_stmt lattice s2)
+    | Branch (condition_expr, true_stmt, false_stmt, astore) ->
+       constraint_gen_if lattice condition_expr true_stmt false_stmt astore @
+       constraint_gen_stmt lattice true_stmt
+       @ constraint_gen_stmt lattice false_stmt @ []
+    | While (condition_expr, body_stmt, astore) ->
+        constraint_gen_stmt lattice body_stmt @ []
+  
+  
+let constraint_gen_ret lattice varOpt ret_expr =
+  match varOpt with
+  | None -> "" :: []
+  | Some var ->
+     match var with
+     | Var(v) -> "" :: []
+     | AnnoVar(a, v) -> constraint_gen_set (get_anno lattice a) (anno_expr_anno ret_expr) :: []
+  
+let constraint_gen_func' lattice = function
+  | AnnoFunc (name, params, abstract_store, anno_body, ret) ->
+     constraint_gen_ret lattice (Some name) ret
+     @ constraint_gen_stmt lattice anno_body @ []
+  
+let constraint_gen_func lattice f =
+  String.concat "\n" (constraint_gen_func' lattice f)
+  
+let constraint_gen_prog' lattice = function
+  | AnnoProg (funcs, astmt, expr) ->
+     List.map (constraint_gen_func lattice) funcs
+     @ constraint_gen_stmt lattice astmt
+    @ constraint_gen_ret lattice None expr @ []
+  
+let constraint_gen_prog lattice p =
+  String.concat "\n" (constraint_gen_prog' lattice p)
