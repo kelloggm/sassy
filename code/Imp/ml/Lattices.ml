@@ -32,10 +32,31 @@ let null_lattice =
     in
     ((maybe_null :: not_null :: []), abstraction_function)
 
+let sign_lattice =
+    let top = Element ((explode "@Top"), []) in
+    let poszero = Element ((explode "@PosOrZero"), (top :: [])) in
+    let negzero = Element ((explode "@NegOrZero"), (top :: [])) in
+    let pos = Element ((explode "@Positive"), (poszero :: [])) in
+    let neg = Element ((explode "@Negative"), (negzero :: [])) in
+    let zero = Element ((explode "@Zero"), (poszero :: negzero :: [])) in
+    let bottom = Element ((explode "@Bottom"), (pos :: neg :: zero :: [])) in
+    let abstraction_function = function
+        | Vint i -> 
+            (match (Big_int.sign_big_int i) with
+            | 0 -> zero
+            | -1 -> neg
+            | 1 -> pos
+            | _ -> top)
+        | _ -> bottom
+    in
+    ((top :: poszero :: negzero :: pos :: zero :: neg :: bottom :: []), abstraction_function)
+
+
 exception No_Such_Lattice of bytes
 
 let get_lattice_by_name name =
     match name with
     | "parity" -> parity_lattice
     | "nullness" -> null_lattice
+    | "sign" -> sign_lattice
     | _ -> raise (No_Such_Lattice (mkstr "No lattice named %s." name))

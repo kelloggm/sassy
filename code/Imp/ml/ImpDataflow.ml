@@ -132,6 +132,20 @@ type anno_prog =
 (* Function environments look like abstract environments *)
 type function_environment = (char list * abstr_type) list
 
+(* 
+We do a little bit with negation to handle unary operations on constants "correctly"
+(i.e. it's confusing that negative constants are actually constrained as "abst-neg pos-const-abstr-val")
+*)
+let neg a =
+    match a with 
+    | Vint v -> Vint (Big_int.minus_big_int v)
+    | _ -> a
+
+let not a =
+    match a with 
+    | Vbool v -> if v then Vbool false else Vbool true
+    | _ -> a
+
 (* Dataflow for expressions.
 TODO:  Currently doesn't do anything to handle several 
 built in 'expressions', and makes no attempt to handle 
@@ -143,7 +157,13 @@ let rec get_expr_atype lattice expr astore =
     | Evar var -> (match (get_atype var astore) with 
                  | None -> NoAnno (*TODO--This is use of a variable we haven't seen before*)
                  | Some a -> a)
-    | Eop1 (op1, e1) -> AOp1 (op1, (get_expr_atype lattice e1 astore)) (* TODO -- this is kind of a hack...*)
+    | Eop1 (op1, e1) -> 
+        (match e1 with
+        | Eval v -> (match op1 with
+                    | Oneg -> Anno ((Lattice.get_abstraction_function lattice) (neg v))
+                    | Onot -> Anno ((Lattice.get_abstraction_function lattice) (not v)))
+        | _ -> AOp1 (op1, (get_expr_atype lattice e1 astore)) (* TODO -- this is kind of a hack...*)
+        ) 
     | Eop2 (op2, e1, e2) -> AOp2 (op2, (get_expr_atype lattice e1 astore), (get_expr_atype lattice e2 astore))
     | Elen expr -> NoAnno (*TODO--Length expression takes an array and returns its length*)
     | Eidx (e1, e2) -> NoAnno (*TODO--Index expression gets a value from the heap.*)
