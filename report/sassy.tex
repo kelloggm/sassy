@@ -181,7 +181,7 @@ constraints from examples and passes them to an SMT solver. These are
 the pieces of the proposed solution that we implemented for this course
 project.
 
-\subsection{Input: lattice and examples}
+\subsection{Lattice and Examples}
 \label{sec-input}
 
 The programmer provides three things: a lattice,
@@ -211,7 +211,7 @@ used as an example in \secref{ai}:
 @Even z = x + y;
 \end{lstlisting}
 
-\subsection{The sketch}
+\subsection{The Sketch}
 \label{sec-sketch}
 
 Our tool provides a sketch of the transfer function. Most of the
@@ -251,7 +251,11 @@ transfer function will always be sound in underspecified cases; they
 have the effect of introducing a default behavior that corresponds
 with typical analyses.
 
-\subsection{Generating constraints}
+Our sketches also include constraints about the mathematical properties
+of certain functions. For instance, addition and multiplication must
+be commutative.
+
+\subsection{Generating Constraints}
 \label{sec-cgen}
 
 To generate contraints from the code sample in \secref{input},
@@ -318,7 +322,52 @@ they are already working in! Further, actually writing the analysis
 would require testing it, and our tool's input is exactly the test
 cases a conscientious analysis developer would want to write.
 
-\section{Implementation}
+\subsection{Remaining Challenges}
+
+The largest remaining open problem that our approach has is with how to
+handle flow-sensitive refinement. Our current approach is to allow
+users to annotate which variables change their value after a refinement
+using a special syntax, an example of which appears below:
+
+\begin{lstlisting}
+@Both x = read_int()
+if (x = 2) {
+   [x=@Even]
+   ...
+}
+\end{lstlisting}
+
+In the example, \lstinline{x} is an arbitrary integer when it is read, but
+inside the then branch of the \lstinline{if} statement it becomes even.
+Our tool uses special transfer functions for the left hand side and the
+right hand side of comparison operators, for both the then and else store.
+For instance, the code above would generate a constraint on the
+\lstinline{if-then-store-lhs-eq} function.
+
+This approach is fundamentally limited: our tool is only able to reason
+about dataflow for the expressions that appear on the left or right side
+of the comparison operator, not about subexpressions. For instance,
+consider this code:
+
+\begin{lstlisting}
+@Both x = read_int()
+if (x \% 2 = 0) {
+   [x=@Even]
+   ...
+}
+\end{lstlisting}
+
+This refinment is predicated on the specific values of these constants:
+\lstinline{x} must be divided by exactly two and that value must be
+compared to exactly zero for the refinement to be true. Our tool's
+current implementation cannot capture rich enough information to be
+able to make this refinement. A future version of this technique will need
+to generate constraints that more precisely capture what's going on in the
+code example above, and then generate flow-sensitive transfer
+functions that account for it. That will require figuring out a better
+model for how to handle flow-sensitive refinement.
+
+\subsection{Implementation}
 
 Our implementation targets the IMP programming language~\footnote{https://www.seas.upenn.edu/~cis500/current/sf/Imp.html}.
 We chose to use IMP because it is simple and we can avoid worrying
@@ -332,65 +381,43 @@ implement the last stage of our proposed approach, but rather stop with a
 synthesized transfer function (there is also little practical value in building
 a backend for IMP).
 
-\subsection{Remaining Challenges}
-
-The largest remaining open problem that we 
-
 \section{Evaluation}
 \label{sec-eval}
 
+
+We evaluate our approach by comparing the synthesized transfer
+functions for two analyses to the ground truth accepted transfer
+functions. We consider a parity analysis and a signedness analysis.
+We consider at least two versions of each analysis, with different
+numbers of test cases.
+\tabref{analyses} shows all the analyses that we considered.
+The set of test cases is completely arbitrary,
+and our goal is to show that creating these analyses automatically
+is \emph{possible}; we leave an evaluation of the usability of the
+tool until the tool operates on a language that programmers might
+actually write code in.
+
 \begin{table}
 \centering
- \begin{tabular}{l c c c c }
-  
-  Analysis & Test Cases & Precision & Recall & F-measure\\ 
+ \begin{tabular}{l c c }
+  Analysis & Test Cases & \% Expr. Correct \\ 
   \midrule
-  Parity0 & 4 & 0.46 & 0.46 & 0.46 \\
-  Parity1 & - & - & - & - \\
-  ... & - & - & - & - \\
-  Sign0 & - & - & - & - \\
-  Sign1 & - & - & - & - \\
-  ... & - & - & - & - \\
-  NPE0 & - & - & - & - \\
-  NPE1 & - & - & - & - \\
-  ... & - & - & - & - \\
-  Range0 & - & - & - & - \\
-  Range1 & - & - & - & - \\
-  ... & - & - & - & - \\
+  Parity-GTT & - & 35\% \\
+  Parity-0 & 4 & ?\% \\
+  Parity-1 & 9 & 100\% \\
+  \midrule
+  Signedness-GTT & - & ?\% \\
+  Signedness-0 & ? & ?\% \\
+  Signedness-1 & ? & ?\% \\
  \end{tabular}
- \caption{Evaluation of synthesized transfer functions compared
- to ground truth transfer functions. Different analyses with
- the same name but a different number have the same ground truth
- but use a different set of test cases. The analyses are ordered
- by the number of test cases they used. Precision, recall, and
- F-measure are calculated in the standard way against the ground
- truth transfer function.}
+ \caption{Analyses generated by our tool, the number of test cases
+ required to generate them, and the percentage of transfer function
+ entries that are correct at the expression level (i.e. without
+ considering flow-sensitive refinement). The two analyses labeled
+ ``GTT'' are ``Go to top'' analyses all of whose transfer functions
+ always return the top type. These are a baseline to compare against.}
  \label{tab-analyses}
-\end{table} 
-
-We will evaluate our approach by comparing the synthesized transfer
-functions for several analyses to the ground truth accepted transfer
-functions. The analyses we will consider are: a parity analysis,
-a signedness analysis, a null-pointer analysis (using a version of
-IMP augmented with a heap), and a range analysis, in that order.
-
-\tabref{analyses} contains a skeleton of our proposed evaluation.
-Each row in the table corresponds to a generated set of transfer functions.
-For instance,
-the row labeled ``Parity0'' states that it is a parity analysis
-(from the name), that it was synthesized from 4 test cases,
-and its precision, recall, and F-measure when compared to the ground
-truth transfer functions were all 0.46. Because the parity analysis is only
-relevant for integers, only the transfer functions on integer expressions
-were considered.
-The ground truth transfer functions were created manually by the authors,
-but follow the established standards for their respective analyses.
-Precision, recall, and F-measure were calculated following the standard
-procedure: precision is the percentage of transfer function entries
-in the synthesized transfer function that also appear in the ground truth,
-recall is the percentage of transfer function entries in the ground truth
-that appear in the synthesized transfer function, and F-measure is the
-geometric mean of precision and recall.
+\end{table}
 
 \begin{table}
 \centering
