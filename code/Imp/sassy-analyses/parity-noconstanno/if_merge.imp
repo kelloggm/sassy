@@ -1,0 +1,8 @@
+x = @Both read_int();
+y = x;
+if(x < 1) {
+    y = 1;
+} else {
+    y = 2;
+}
+return y;

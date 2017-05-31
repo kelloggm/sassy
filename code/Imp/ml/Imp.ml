@@ -183,10 +183,11 @@ let _ =
   | "generate-constraints" ->
     let targets = if is_directory (getflag "src") then get_all_files(getflag "src") else ((getflag "src") :: [])
     in
-    let parsed_files = List.map parse targets
-    in
-    (* TODO -- replace with constraint generation, rather than just pretty printing all files in a folder.*)
-    List.map print_endline (List.map ImpPretty.prog_pretty parsed_files); 
+    let parsed_files = List.map parse targets in
+    let abstr_interp = Lattices.get_lattice_by_name (getflag "lattice") in
+    let dataflow_progs = List.map (ImpDataflow.dataflow_prog abstr_interp) parsed_files in
+    List.iter print_endline (Lattice.generate_lattice_constraints (Lattice.get_lattice abstr_interp));
+    List.iter print_endline (List.map (ImpDataflow.constraint_gen_prog abstr_interp) dataflow_progs); 
     print_endline ""
   | _ ->
       failwith "ERROR: bad mode"

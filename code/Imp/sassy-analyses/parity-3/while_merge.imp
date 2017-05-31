@@ -1,0 +1,7 @@
+x = @Both read_int();
+y = x;
+while(0 < x) {
+    x = x - @Odd 1;
+    @Even y = 2 * y;
+}
+return y;
