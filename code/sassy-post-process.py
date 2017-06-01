@@ -81,24 +81,20 @@ for btf in rgbtf:
     print "(declare-fun abstract-" + btf + " (Elt Elt) Elt)"
 
 print "(declare-fun abstract-subtype (Elt Elt) Bool)"
-print "(declare-fun abstract-abstraction (Int) Elt)"
     
 for zas in rgzasFiltered:
     print zas
     
 # generic constraints on unary transfer functions
 for utf in rgutf:
-    print "(assert (= (abstract-" + utf + " " + tel + ") " + tel + "))"
-    for bel in rgbel:
-        print "(assert (= (abstract-" + utf + " " + bel + ") " + bel + "))"
     for lae in rglae:
-        print "(assert-soft (= (abstract-" + utf + " " + lae + ") " + tel + "))"
-
+        if lae in rgbel:
+            print "(assert-soft (= (abstract-" + utf + " " + lae + ") " + lae + "))"
+        else:
+            print "(assert-soft (= (abstract-" + utf + " " + lae + ") " + tel + "))"
+        
 # generic constraints on binary transfer functions
 for btf in rgbtf:
-    print "(assert (= (abstract-" + btf + " " + tel + " " + tel + ") " + tel + "))"
-    for bel in rgbel:
-        print "(assert (= (abstract-" + btf + " " + bel + " " + bel + ") " + bel + "))"
     for lae1 in rglae:
         for lae2 in rglae:
             if lae1 in rgbel:
