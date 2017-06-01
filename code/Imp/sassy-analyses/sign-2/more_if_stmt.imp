@@ -13,12 +13,16 @@ if(0 < inp1)
 else 
 {
     [inp1=@NegOrZero]
+    @PosOrZero nega1 = -inp1;
     if(0 <= inp2){
         [inp2=@PosOrZero]
+        @NegOrZero nega2 = - inp2;
         @Negative m = inp1 + neg;
         @NegOrZero n = inp1 + zero;
         @Top o = inp1 + pos;
         @Top p = inp1 + inp2;
+        @PosOrZero more = inp1 * pos;
+        @NegOrZero times = inp1 * inp2;
         @NegOrZero q = inp1 - inp2;
         @NegOrZero r = inp1 / inp2;
         @PosOrZero s = inp1 % inp2;

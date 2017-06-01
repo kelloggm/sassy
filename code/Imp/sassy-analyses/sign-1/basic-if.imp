@@ -1,0 +1,9 @@
+@Top input = read_int();
+if(input == 0){
+    [input=@Zero]
+    @Zero m = -input;
+} else {
+    @Top m = -input;
+}
+
+return input;

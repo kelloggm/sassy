@@ -1,0 +1,8 @@
+x = @Top read_int();
+y = x;
+while(0 < x) {
+    [x=@Positive]
+    @Top x = x - 1;
+    @Top y = 2 * y;
+}
+return y;

@@ -1,0 +1,7 @@
+x = 3;
+y = 2;
+r = -10;
+@PosOrZero z = x % y;
+@PosOrZero w = y % z;
+@PosOrZero q = r % x;
+return 0;

@@ -1,0 +1,10 @@
+x = -1;
+y = 1;
+z = 0;
+@Positive q = y * y;
+@Negative r = x * y;
+@Positive s = x * x;
+@Zero t = z * x;
+@Zero u = z * y;
+@Zero v = z * z;
+return v;
