@@ -58,11 +58,12 @@ community are never engineered to the level of practicality and
 precision that would be required to run on real-world code, so most
 programmers never gain their benefits.
 
-We propose to deploy state-of-the-art techniques from the domain of program
-synthesis to allow programmers to specify a static analysis by providing
+We propose
+to allow programmers to specify a static analysis by providing
 examples of the code that the analysis should and should not permit.
-Our technique then synthesizes an abstract interpretation of the analysis,
-which is then mechanically translated to an analysis framework like
+Our technique synthesizes an abstract interpretation of the analysis
+from the examples,
+which can be mechanically translated to an analysis framework like
 the Checker Framework~\cite{checker-framework} or LLVM~\cite{lattner04:_llvm}.
 A simple analysis could be specified
 with just a few test cases (consider, for example, a function that needs to
@@ -118,7 +119,7 @@ get right (and therefore the most interesting research contribution)
 will be in 2) and 3): designing the constraint generation tool and the
 sketches so that they capture the static analysis the programmer intended
 with a small number of test cases, we believe, is the most challenging
-problem. Our proposal for this class therefore focuses on those parts,
+problem. Our work for this class therefore focuses on those parts,
 leaving 6) as future work.
 
 \section{Background}
@@ -142,10 +143,15 @@ interpreting the program being analyzed, replacing each concrete value with
 an abstract domain determined by applying the transfer functions. An example
 lattice and transfer function for the plus operator are given in Figure~1.
 The analysis shown in Figure~1 is a parity analysis---it keeps track of
-whether integers are even or odd. There are also two other possiblities:
+whether integers are even or odd.
+There are also two other possiblities:
 the integer could be either even or odd (the ``top'' type) or it could
 be \textit{both} even and odd---such as in dead code (represented by the
-``bottom'' type). The lattice shows how these abstract domains are related,
+``bottom'' type).
+We will use this analysis as an
+example throughout the rest of this paper.
+
+The lattice shows how these abstract domains are related,
 with a subset relationship represented by the lines---any abstract domain
 with a line going to another abstract domain higher in the lattice is a strict
 subset of the higher abstract domain (so, for instance, top contains both
@@ -157,7 +163,7 @@ parts of the matrix representing the abstract domain of the result. So,
 as an example, if $a$ is odd and $b$ is bottom, then $a + b$ is bottom,
 because the entry for odd and bottom in the matrix is bottom.
 
-\subsection{Synthesis}
+\subsection{Program Synthesis}
 \label{sec-synth}
 
 The field of program synthesis uses SMT solvers to
@@ -181,9 +187,10 @@ such as a program with some expressions missing.
 This section focuses on the part of the proposed tool that generates
 constraints from examples and passes them to an SMT solver. These are
 the pieces of the proposed solution that we implemented for this course
-project.
+project. Converting the synthesized transfer functions into a practical
+analysis is left as future work (see \secref{fw}).
 
-\subsection{Lattice and Examples}
+\subsection{Lattice, Abstraction Function, and Examples}
 \label{sec-input}
 
 The programmer provides three things: a lattice,
@@ -198,8 +205,11 @@ from a configuration file. The abstraction function is provided
 in a similar manner, and would be similarly provided in a configuration
 file in future work. It relates constants to lattice elements.
 For instance, the abstraction function for the parity analysis
-in \secref{ai} relates all even integers to the \lstinline{@Even}
-lattice element.
+in \secref{ai} is:
+
+$Even := \{ x : Int | x \% 2 = 0 \}$
+
+$Odd := \{ x : Int | x \% 2 = 1 \}$
 
 The examples are code snippets annotated with the
 abstract domains (in the same way typed languages have type annotations).
@@ -221,7 +231,8 @@ sketch is dedicated to declaring the transfer functions for various
 operators. For instance, the code below is the \lstinline{smt2}~\cite{smt2}
 code that our tool generates for the plus operator when preparing
 a sketch for the parity analysis in \secref{ai} (\lstinline{Elt} is
-a special type that can only be inhabited by a lattice element):
+a special type that can only be inhabited by a lattice element,
+and ``Both'' is the top type in the analysis):
 
 \lstset{language=[]Lisp}
 \lstset{morekeywords={assert-soft, declare-fun}}
@@ -233,21 +244,23 @@ a special type that can only be inhabited by a lattice element):
 \end{lstlisting}
 \lstset{language=C}
 
-The first line declares the function \lstinline{abstract-plus}, which
+The first line declares the function abstract-plus, which
 is the transfer function for plus. The second and third lines are
 \textit{soft constraints}~\cite{bjorner2015nuz},
 each of which biases the solver towards returning the top lattice
 element for any transfer not involving the bottom element, and the
 bottom element for transfers that do involve the bottom element.
-There is a soft constraint for each pair of lattice elements; our
-example omits all but two.  These constraints are not required to be
-satisfied, but the solver prefers solutions in which they are
+There is a soft constraint for each pair of lattice elements; the
+example above omits all but two.  The solver is not required to
+satisfy these constraints, but the solver prefers solutions in which they are
 satisfied to solutions in which they are not.  Though adding soft
 constraints does convert the problem from a standard satisfiablity
 problem to an optimization problem, because the number of these
-constraints introduced is proportional to the size of the sketch, the
+constraints introduced is proportional to the square of the number of
+lattice elements, the
 impact of these constraints on performance is not problematic---no
-matter how large the input, the number of soft constraints generated
+matter how many input examples the programmer provides,
+the number of soft constraints generated
 is constant.  As a result of the soft constraints, the produced
 transfer function will always be sound in underspecified cases; they
 have the effect of introducing a default behavior that corresponds
@@ -272,7 +285,7 @@ constraints when it encounters a statement that
 can be used to constrain a transfer function, like
 the third line above (which constrains the transfer function
 for plus). The tool generates
-the following \lstinline{smt2}~\cite{smt2} constraint:
+the following \lstinline{smt2} constraint for that line:
 
 \lstset{language=[]Lisp}
 \begin{lstlisting}[columns=fullflexible]
@@ -280,11 +293,9 @@ the following \lstinline{smt2}~\cite{smt2} constraint:
 \end{lstlisting}
 \lstset{language=C}
 
-This constraint corresponds to the final statement in the
-simple imperative program above.
 It is a \textit{hard constraint}---that is, it must be satisfied
 by the solver.
-\lstinline{abstract-plus} is defined in the sketch (\secref{sketch}) and defines
+abstract-plus is defined in the sketch (\secref{sketch}) and defines
 the transfer function for the plus operator.
 The constraint indicates that
 adding two even numbers produces another even number. Solving a series of
@@ -306,12 +317,12 @@ that we introduced in \secref{sketch} are partly motivated by this problem;
 because of the soft constraints, any ambiguity in the input will not
 introduce unsoundness.
 
-This produced transfer function, along with the known lattice,
+This produced transfer function, along with the lattice,
 contains enough information to mechanically create the practical
 analysis on top of a backend. Potential backends include frameworks like the
 Checker Framework~\cite{checker-framework} (for Java)
-or LLVM~\cite{lattner04:_llvm} (for C/C++). The backend chosen will
-depend on the target language.
+or LLVM~\cite{lattner04:_llvm} (for C/C++),
+depending on the target language.
 
 The main benefit of our approach is that it relieves the burden of
 writing the transfer function from the programmer. The programmer
@@ -323,6 +334,12 @@ write test cases in the language being analyzed---which is the langauge
 they are already working in! Further, actually writing the analysis
 would require testing it, and our tool's input is exactly the test
 cases a conscientious analysis developer would want to write.
+Testing the analysis our technique produces requires running it on
+real code---but that is the goal of producing the analysis, anyway.
+If the analysis produces incorrect results, the offending code can be
+annotated and added to the set of examples---resulting in the analysis
+getting the correct result! In this way, the analysis can be iteratively
+improved as it is used.
 
 \subsection{Remaining Challenges}
 
@@ -344,7 +361,7 @@ inside the then branch of the \lstinline{if} statement it becomes even.
 Our tool uses special transfer functions for the left hand side and the
 right hand side of comparison operators, for both the then and else store.
 For instance, the code above would generate a constraint on the
-\lstinline{if-then-store-lhs-eq} function.
+if-then-store-lhs-eq function.
 
 This approach is fundamentally limited: our tool is only able to reason
 about dataflow for the expressions that appear on the left or right side
@@ -353,14 +370,14 @@ consider this code:
 
 \begin{lstlisting}
 @Both x = read_int()
-if (x \% 2 = 0) {
+if (x % 2 = 0) {
    [x=@Even]
    ...
 }
 \end{lstlisting}
 
 This refinment is predicated on the specific values of these constants:
-\lstinline{x} must be divided by exactly two and that value must be
+\lstinline{x} must be modularly divided by exactly two and that value must be
 compared to exactly zero for the refinement to be true. Our tool's
 current implementation cannot capture rich enough information to be
 able to make this refinement. A future version of this technique will need
@@ -381,14 +398,16 @@ into smt2 constraints using a dataflow framework for IMP.
 We will not
 implement the last stage of our proposed approach, but rather stop with a
 synthesized transfer function (there is also little practical value in building
-a backend for IMP).
+a backend for IMP). Our implementation is open-source and publicly
+available~\footnote{https://github.com/kelloggm/sassy}.
 
 \section{Evaluation}
 \label{sec-eval}
 
 We evaluate our approach by comparing the synthesized transfer
 functions for two analyses to the ground truth accepted transfer
-functions. We consider a parity analysis and a signedness analysis.
+functions. We consider a parity analysis (like the one in \secref{ai})
+and a signedness analysis.
 We consider at least two versions of each analysis, with different
 numbers of test cases (and a different test case selection process).
 \tabref{analyses} shows all the analyses that we considered.
@@ -401,20 +420,22 @@ The set of test cases was largely arbitrary, though, and our goal is to show tha
 creating these analyses automatically is \emph{possible}; 
 we leave a formal evaluation of the usability of the
 tool until the tool operates on a language that programmers might
-actually write code in (see \secref{fw}).
+actually write code in (see \secref{fw}). As a sample of the sort of
+test cases that we are using, an Appendix follows this paper that contains
+the four test cases used to generate the ``Parity-0'' analysis.
 
 \begin{table}
 \centering
- \begin{tabular}{l c c }
-  Analysis & Test Cases & \% Expr. Correct \\ 
+ \begin{tabular}{l c c c }
+  Analysis & Test Cases & Test LoC & \% Expr. Correct \\ 
   \midrule
-  Parity-GTT & - & 35\% \\
-  Parity-0 & 4 & 83\% \\
-  Parity-1 & 9 & 100\% \\
+  Parity-GTT & - & - & 35\% \\
+  Parity-0 & 4 & 23 & 83\% \\
+  Parity-1 & 9 & 58 & 100\% \\
   \midrule
-  Signedness-GTT & - & 23\% \\
-  Signedness-0 & 7 & 54\% \\
-  Signedness-1 & 9 & 71\% \\
+  Signedness-GTT & - & - & 23\% \\
+  Signedness-0 & 7 & 49 & 54\% \\
+  Signedness-1 & 9 & 172 & 71\% \\
  \end{tabular}
  \caption{Analyses generated by our tool, the number of test cases
  required to generate them, and the percentage of transfer function
@@ -429,61 +450,66 @@ actually write code in (see \secref{fw}).
 \centering
  \begin{tabular}{l c c c c }
   
-  Function & Correct & Incorrect & Imprecise & Total\\ 
+  Function & Correct & Imprecise & Total & \% Correct\\ 
   \midrule
-  Plus & 13 & 0 & 3 & 16 \\
-  Minus & 12 & 0 & 4 & 16 \\
-  Times & 13 & 0 & 3 & 16 \\
-  Divide & 16 & 0 & 0 & 16 \\
-  Mod & 14 & 0 & 2 & 16 \\
-  Negate & 2 & 0 & 2 & 4 \\
+  Plus & 13 & 3 & 16 & 81\% \\
+  Minus & 12 & 4 & 16 & 75\% \\
+  Times & 13 & 3 & 16 & 81\% \\
+  Divide & 16 & 0 & 16 & 100\% \\
+  Mod & 14 & 2 & 16 & 88\% \\
+  Negate & 2 & 2 & 4 & 50\% \\
   \midrule
-  Total & 70 & 0 & 14 & 84 \\
+  Total & 70 & 14 & 84 & 83\% \\
  \end{tabular}
  \caption{Breakdown of the results of synthesizing transfer functions
- for a parity analysis from just four simple test cases. Correct is number
+ for a parity analysis (Parity-0)
+ from just four simple test cases. Correct is number
  of entries in the matrix that match the ground truth transfer function
- exactly; Incorrect is the number that do not match and are unsound;
+ exactly;
  Imprecise is the number that do not match, but are still sound. The
- percentage shown in Table I can be calculated by dividing
+ percentage correct can be calculated by dividing
  the Correct column by the Total column.}
- \label{tab-parity0}
+ \label{tab-Parity-0}
 \end{table}
 
 \begin{table}
 \centering
  \begin{tabular}{l c c c c }
   
-  Function & Correct & Incorrect & Imprecise & Total\\ 
+  Function & Correct & Imprecise & Total & \% Correct\\ 
   \midrule
-  Plus & 5 & 0 & 11 & 16 \\
-  Minus & 5 & 0 & 11 & 16 \\
-  Times & 3 & 0 & 13 & 16 \\
-  Divide & 8 & 0 & 8 & 16 \\
-  Mod & 7 & 0 & 9 & 16 \\
-  Negate & 1 & 0 & 3 & 4 \\
+  Plus & 5 & 11 & 16 & 31\% \\
+  Minus & 5 & 11 & 16 & 31\% \\
+  Times & 3 & 13 & 16 & 19\% \\
+  Divide & 8 & 8 & 16 & 50\% \\
+  Mod & 7 & 9 & 16 & 44\% \\
+  Negate & 1 & 3 & 4 & 25\% \\
   \midrule
-  Total & 29 & 0 & 55 & 84 \\
+  Total & 29 & 55 & 84 & 35\% \\
  \end{tabular}
  \caption{Equivalent table to Table II, but for an
  analysis that ``always goes to top''---meaning that every
- transfer function loses all precision.}
+ transfer function loses all precision. The analysis is Parity-GTT.}
  \label{tab-top}
 \end{table}
 
 To further break
-down how precise the ``parity-0'' analysis is, consider \tabref{parity0}, which breaks
+down how precise each analysis is, we present tables like \tabref{Parity-0}, which breaks
 down each of the relevant transfer functions by the number of exactly correct
-entries, the number of incorrect entries (i.e. unsound entries; previous
-versions of our tool produced these but the current version does not), and the
+entries, the
 number of imprecise entries (i.e. entries that are sound but not as precise
-as they could be). \tabref{top} shows the same table for an analysis whose
+as they could be), and the percentage of entries that are correct.
+\tabref{Parity-0} shows these results on the ``Parity-0'' analysis; the
+test cases used to construct this analysis are found in the Appendix, as an
+example.
+\tabref{top} shows the same table for an analysis whose
 transfer functions are always top; this analysis is sound but not precise.
-The generated transfer function gets many more cases correct.
+The generated transfer function ``Parity-0'' gets many more cases correct.
 That we are able to get so many more cases correct
 without introducing unsoundness, with just four test cases
-is encouraging. By adding just a few more tests (like our ``parity-1''
-analysis does) it is possible to reach a perfect match for the correct
+is encouraging. By adding just a few more tests (like our ``Parity-1''
+analysis does; there is no table for ``Parity-1'' because all entries
+are 100\% correct) it is possible to reach a perfect match for the correct
 transfer function at the expression level. None of the parity analyses
 have any interesting behavior with respect to dataflow; they instead
 just go to top.
@@ -502,16 +528,16 @@ to improve the results by writing specific test cases that caused those states t
 \centering
  \begin{tabular}{l c c c c }
   
-  Function & Correct & Incorrect & Imprecise & Total\\ 
+  Function & Correct & Imprecise & Total & \% Correct\\ 
   \midrule
-  Plus & 34 & 0 & 15 & 49 \\
-  Minus & 31 & 0 & 18 & 49 \\
-  Times & 31 & 0 & 18 & 49 \\
-  Divide & 22 & 0 & 27 & 49 \\
-  Mod & 16 & 0 & 33 & 49 \\
-  Negate & 3 & 0 & 4 & 7 \\
+  Plus & 34 & 15 & 49 & 69\% \\
+  Minus & 31 & 18 & 49 & 63\% \\
+  Times & 31 & 18 & 49 & 63\% \\
+  Divide & 22 & 27 & 49 & 45\% \\
+  Mod & 16 & 33 & 49 & 33\% \\
+  Negate & 3 & 4 & 7 & 43\% \\
   \midrule
-  Total & 137 & 0 & 115 & 252 \\
+  Total & 137 & 115 & 252 & 54\% \\
  \end{tabular}
  \caption{Breakdown of the results of synthesizing transfer functions
  for a signedness analysis (Signedness-0). The format is the same
@@ -524,19 +550,19 @@ to improve the results by writing specific test cases that caused those states t
 \centering
  \begin{tabular}{l c c c c }
   
-  Function & Correct & Incorrect & Imprecise & Total\\ 
+  Function & Correct & Imprecise & Total & \% Correct\\ 
   \midrule
-  Plus & 19 & 0 & 30 & 49 \\
-  Minus & 19 & 0 & 30 & 49 \\
-  Times & 9 & 0 & 40 & 49 \\
-  Divide & 9 & 0 & 40 & 49 \\
-  Mod & 0 & 0 & 49 & 49 \\
-  Negate & 1 & 0 & 6 & 7 \\
+  Plus & 19 & 30 & 49 & 39\%\\
+  Minus & 19 & 30 & 49 & 39\% \\
+  Times & 9 & 40 & 49 & 18\% \\
+  Divide & 9 & 40 & 49 & 18\% \\
+  Mod & 0 & 49 & 49 & 0\% \\
+  Negate & 1 & 6 & 7 & 14\% \\
   \midrule
-  Total & 57 & 0 & 195 & 252 \\
+  Total & 57 & 195 & 252 & 23\% \\
  \end{tabular}
  \caption{Correctness of a baseline signedness analysis
- that ``always goes to top''.}
+ that ``always goes to top''. The analysis is Signedness-GTT.}
  \label{tab-topsign}
 \end{table}
 
@@ -545,40 +571,46 @@ to improve the results by writing specific test cases that caused those states t
 \centering
  \begin{tabular}{l c c c c }
   
-  Function & Correct & Incorrect & Imprecise & Total\\ 
+  Function & Correct & Imprecise & Total & \% Correct\\ 
   \midrule
-  Plus & 47 & 0 & 2 & 49 \\
-  Minus & 37 & 0 & 12 & 49 \\
-  Times & 35 & 0 & 14 & 49 \\
-  Divide & 31 & 0 & 18 & 49 \\
-  Mod & 22 & 0 & 27 & 49 \\
-  Negate & 7 & 0 & 0 & 7 \\
+  Plus & 47 & 2 & 49 & 96\% \\
+  Minus & 37 & 12 & 49 & 76\% \\
+  Times & 35 & 14 & 49 & 71\% \\
+  Divide & 31 & 18 & 49 & 63\% \\
+  Mod & 22 & 27 & 49 & 45\% \\
+  Negate & 7 & 0 & 7 & 100\% \\
   \midrule
-  Total & 179 & 0 & 73 & 252 \\
+  Total & 179 & 73 & 252 & 71\% \\
  \end{tabular}
  \caption{Results of synthesizing transfer functions
  for a more precise signedness analysis (Signedness-1). The format is the same
  as similar figures for the parity analysis. This analysis was
- created by augmenting the ``sign0'' analysis with test cases
+ created by augmenting the Signedness-0 analysis with test cases
  designed to exercise places where that analysis is imprecise.}
  \label{tab-sign1}
 \end{table}
 
-The added challenges can be shown by the difference in percision between ``sign-0'', where
-existing files were annotated, and ``sign-1'', which includes two code files written 
-specifically to exercise comparision paths that led to ``Negative or Zero'' and ``Positive or Zero''
-to appear.  Although the ``sign-0'' analysis is still sound, and more precise than 
-sending all operations to ``Top'', it's imprecise in many cases.  The ``sign-1'' analysis 
-improves accuracy by \(17\%\) by adding two extra test files.
+The added challenges can be shown by the difference in percision
+between ``Signedness-0'', where existing files were annotated, and
+``Signedness-1'', which includes two code files written specifically to
+exercise comparision paths that led to ``Negative or Zero'' and
+``Positive or Zero'' to appear.  Although the ``Signedness-0'' analysis
+is still sound, and more precise than sending all operations to
+``Top'', it's imprecise in many cases.  The ``Signedness-1'' analysis
+improves accuracy by \(17\%\) by adding tests specifically meant to
+disambiguate cases that were not covered by the initial analysis.
 
-Despite the more complex lattice, the results from this signedness analysis were promising.  Adding 
-a small number of extra test files which focused on hitting the rarer cases dramatically increased
-the accuracy.  Although the language is not as complex as Java, the process of writing the code files 
-that exercised specific analyses was reasonably straightforward.
+Despite the more complex lattice, the results from this signedness
+analysis were promising.  Adding a small number of extra test files
+which focused on hitting the rarer cases dramatically increased the
+accuracy.  Although the language is not as complex as Java, the
+process of writing the code files that exercised specific analyses was
+reasonably straightforward.
 
-Annecdotally, the author of the signedness checks found writing the test files for ``sign-1'' 
-easier and less time consuming than implementing a similar analysis in the 
-Checker Framework~\cite{checker-framework}.
+Annecdotally, the author of the signedness checks found writing the
+test files for ``Signedness-1'' easier and less time consuming than
+implementing a similar analysis in the Checker
+Framework.
 
 \begin{figure}
     \begin{tikzpicture}[node distance=2cm]
@@ -695,11 +727,14 @@ refining multiple variables, to a flow-sensitive refinement, etc.).
 This would also require implementing the last stage of the tool, which
 translates the synthesized transfer function into a Checker Framework
 checker or some other backend. Getting this whole pipeline working would,
-we think, be an interesting research contribution, but we are less
-confident that the approach is feasible at all, so we intend to start
+we think, be an interesting research contribution, but we were less
+confident that the approach was feasible at all, so we started
 by validating whether we can produce transfer functions that are
-similar to what a human might write before we worry about translating
+similar to what a human might write before worrying about translating
 them into practical analyses.
+Now, however, we are confident that we can produce such analyses, and
+we believe that this presents a promising opportunity to advance
+the state of the art in constructing custom static analyses.
 
 \section{References}
 
@@ -720,9 +755,11 @@ them into practical analyses.
 %
 \endgroup
 
+\clearpage
+
 \appendix
 
-This appendix contains the test cases used to generate the ``parity0''
+This appendix contains the test cases used to generate the ``Parity-0''
 analysis discussed in \secref{eval}. The test cases are very simple and
 were chosen for convenience.
 
